@@ -119,6 +119,24 @@
     </div>
   </section>
 
+  <section class="screen" id="screen-location" data-nav="run">
+    <div class="screen-scroll location-content">
+      <button class="link" data-go="home">ホームへ</button>
+      <div class="location-symbol" aria-hidden="true"><svg class="icon"><use href="#i-target"></use></svg></div>
+      <h1>位置情報を許可する</h1>
+      <p>現在地を確認してから、ランニングを始めましょう。</p>
+      <ol class="location-steps"><li>下の「位置情報を許可する」をタップ</li><li>Safariの確認画面で「許可」を選択</li><li>現在地が表示されたら、ランニングを開始</li></ol>
+      <button class="primary-btn" id="requestLocation">位置情報を許可する</button>
+      <p id="locationStatus" class="notice" role="status" aria-live="polite">位置情報はまだ取得していません。</p>
+      <div id="locationPreview" class="map-card" hidden><svg class="map-svg" aria-label="現在地の確認"></svg></div>
+      <button id="beginLocatedRun" class="primary-btn" disabled>この位置でランニング開始</button>
+      <details id="locationSettings"><summary>許可画面が出ない・取得できない場合</summary><ol><li>iPhoneの「設定」→「プライバシーとセキュリティ」→「位置情報サービス」をオンにします。</li><li>「SafariのWebサイト」で位置情報の利用を許可し、「正確な位置情報」をオンにします。</li><li>Safariのページメニュー→「Webサイトの設定」→「位置情報」を「確認」または「許可」にします。</li><li>このページへ戻り、もう一度「位置情報を許可する」をタップします。</li></ol><p>iOSのバージョンによって表示名が異なる場合があります。設定アプリをこのページから自動で開くことはできません。</p><a href="https://support.apple.com/ja-jp/guide/personal-safety/ips9bf20ad2f/web" target="_blank" rel="noopener noreferrer">Appleの位置情報設定ガイド</a></details>
+      <button id="viewRunScreen" class="secondary-btn">位置情報なしで画面を見る</button>
+      <details id="routeExample"><summary>軌跡の表示例を見る</summary><p>表示例です。実際の現在地・走行記録ではありません。保存されません。</p><div id="routeDemo" class="map-card"><svg class="map-svg" aria-label="軌跡の表示例"></svg></div></details>
+      <p class="small muted">計測中はSafariを開いたままにしてください。画面ロック中の継続計測は保証されません。</p>
+    </div>
+  </section>
+
   <!-- 3. Run -->
   <section class="screen" id="screen-run" data-nav="run">
     <div class="screen-scroll">

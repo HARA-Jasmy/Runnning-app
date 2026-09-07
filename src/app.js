@@ -1,9 +1,11 @@
+import {LocationRequest} from './location.js';
 import {initLanguage,locale,translate} from './i18n.js';
 import {resizeAvatar} from './avatar.js';
 import * as data from './data.js';
 import {RunTracker,summarize,escapeHtml as esc,dayKey} from './tracker.js';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const tracker=new RunTracker();let profile={nickname:'Runner',country:'jp',consents:{},unit:'km'},runs=[],latest=null,watch=null,timer=null,wake=null,screen='login',saving=false,saveError=false,ready=false,team=null,challengeList=[],challengeEntries=[],rankRequest=0,previousFocus=null;
+const locationRequest=new LocationRequest(navigator.geolocation,window.isSecureContext);let permissionFix=null;
 let rankType='individual',period='month',region='global';
 const time=n=>{n=Math.max(0,Math.floor(n));const h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=n%60;return `${h?h+':':''}${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`};
 const factor=()=>profile.unit==='mile'?0.621371:1,unit=()=>profile.unit==='mile'?'mi':'km';
@@ -12,7 +14,7 @@ const pace=(s,km)=>{if(!km)return '—';const n=Math.round(s/km);return `${Math.
 const text=(s,t)=>{const el=$(s);if(el)el.textContent=t;};
 function toast(t){text('#toast',t);$('#toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toast').classList.remove('show'),5000);}
 const safe=fn=>async(...args)=>{try{return await fn(...args)}catch(e){if(screen==='ranking')$('#rankRows').innerHTML='<p class="empty-state">読み込めませんでした。タブを選び直して再試行してください。</p>';if(screen==='team')$('#team-overview').innerHTML='<p class="empty-state">読み込めませんでした。チームタブを押して再試行してください。</p>';toast(e.message||'処理に失敗しました。もう一度お試しください。');}};
-function navigate(name){if(saveError&&name!=='result'){toast('未保存の走行記録を再保存してください。');return;}if(!ready&&name!=='login')return;screen=name;$$('.screen').forEach(el=>{const active=el.id===`screen-${name}`;el.classList.toggle('active',active);el.inert=!active;});$('#bottomNav').classList.toggle('visible',name!=='login');const key=$(`#screen-${name}`)?.dataset.nav;$$('[data-nav-go]').forEach(b=>b.classList.toggle('active',b.dataset.navGo===key));if(name==='ranking')safe(renderRanking)();if(name==='team')safe(renderTeam)();if(name==='challenge')safe(renderChallenge)();if(name==='run')updateRun();}
+function navigate(name){if(saveError&&name!=='result'){toast('未保存の走行記録を再保存してください。');return;}if(!ready&&name!=='login')return;if(screen==='location'&&name!=='location')locationRequest.cancel();screen=name;$$('.screen').forEach(el=>{const active=el.id===`screen-${name}`;el.classList.toggle('active',active);el.inert=!active;});$('#bottomNav').classList.toggle('visible',name!=='login');const key=$(`#screen-${name}`)?.dataset.nav;$$('[data-nav-go]').forEach(b=>b.classList.toggle('active',b.dataset.navGo===key));if(name==='ranking')safe(renderRanking)();if(name==='team')safe(renderTeam)();if(name==='challenge')safe(renderChallenge)();if(name==='run')updateRun();}
 function modal(title,body){previousFocus=document.activeElement;text('#sheetContent','');$('#sheetContent').innerHTML=`<button class="sheet-close-top" data-action="close-sheet" aria-label="閉じる">×</button><h2 id="sheetTitle">${esc(title)}</h2>${body}`;$('#sheetOverlay').classList.add('show');$('#sheetOverlay').setAttribute('aria-hidden','false');$$('.screen').forEach(e=>e.inert=true);$('#bottomNav').inert=true;$('#sheetContent button').focus();}
 function close(){if(saving)return;$('#sheetOverlay').classList.remove('show');$('#sheetOverlay').setAttribute('aria-hidden','true');$$('.screen').forEach(e=>e.inert=!e.classList.contains('active'));$('#bottomNav').inert=false;previousFocus?.focus();}
 const note=s=>`<p class="sheet-description">${esc(s)}</p>`;
@@ -29,7 +31,7 @@ function renderSummary(){$$('.avatar').forEach(img=>img.src=profile.avatar_data|
 }
 function drawRoute(container,points){if(!container)return;const svg=$('svg.map-svg',container);if(!svg)return;const valid=points||[];svg.setAttribute('viewBox','0 0 350 230');let paths=[];if(valid.length){const lat=valid.map(p=>p.lat),lon=valid.map(p=>p.lon),minLat=Math.min(...lat),maxLat=Math.max(...lat),minLon=Math.min(...lon),maxLon=Math.max(...lon);const cos=Math.cos((maxLat+minLat)/2*Math.PI/180),width=(maxLon-minLon)*cos,height=maxLat-minLat,scale=Math.min(290/(width||.0001),170/(height||.0001));let segment=[];valid.forEach(p=>{if(p.segmentStart&&segment.length){paths.push(segment);segment=[]}segment.push(`${175+((p.lon-(minLon+maxLon)/2)*cos*scale)},${115-(p.lat-(minLat+maxLat)/2)*scale}`)});if(segment.length)paths.push(segment);}
  svg.innerHTML=`<rect width="350" height="230" fill="#f4f6f5"/>${paths.map(path=>`<polyline points="${path.join(' ')}" fill="none" stroke="#f49a42" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}${paths.length?(()=>{const p=paths.at(-1).at(-1).split(',');return `<circle cx="${p[0]}" cy="${p[1]}" r="6" fill="#f49a42" stroke="white" stroke-width="3"/>`})():''}`;
- let caption=$('.map-caption',container);if(!caption){caption=document.createElement('span');caption.className='map-caption';container.append(caption)}caption.textContent=valid.length?'GPS軌跡（背景地図なし）':'GPSを取得すると軌跡が表示されます';}
+ let caption=$('.map-caption',container);if(!caption){caption=document.createElement('span');caption.className='map-caption';container.append(caption)}caption.textContent=valid.length>1?'GPS軌跡（背景地図なし）':valid.length?'現在地を取得しました。移動すると軌跡が表示されます。':'GPSを取得すると軌跡が表示されます';}
 async function lock(){try{wake=await navigator.wakeLock?.request('screen')}catch{}}
 function stopWatch(){gpsEpoch++;if(watch!==null)navigator.geolocation.clearWatch(watch);watch=null;clearInterval(timer);timer=null;wake?.release();wake=null;}
 let lastFix=null,gpsEpoch=0;
@@ -67,7 +69,28 @@ function drawLiveRoute(){
   if(lastFix){let label=$('.coordinates',el);if(!label){label=document.createElement('span');label.className='coordinates';el.append(label)}label.textContent=`${lastFix.lat.toFixed(5)}, ${lastFix.lon.toFixed(5)} · ±${Math.round(lastFix.accuracy)}m`;}
  }
 }
-async function startRun(){if(tracker.active){navigate('run');return;}if(saveError)throw Error('前の記録を保存してから開始してください。');tracker.start();lastFix=null;$$('.coordinates').forEach(e=>e.remove());latest=null;navigate('run');drawRoute($('#runMapCard'),[]);updateRun();watchGPS();void lock();}
+function startRun(){if(tracker.active){navigate('run');return;}if(saveError)throw Error('前の記録を保存してから開始してください。');openLocation();}
+function openLocation(){
+ locationRequest.cancel();permissionFix=null;
+ $('#requestLocation').disabled=false;$('#beginLocatedRun').disabled=true;$('#locationPreview').hidden=true;
+ text('#locationStatus','位置情報はまだ取得していません。');text('#requestLocation','位置情報を許可する');
+ navigate('location');
+}
+function requestLocation(){
+ $('#requestLocation').disabled=true;$('#beginLocatedRun').disabled=true;permissionFix=null;$('#locationPreview').hidden=true;
+ text('#locationStatus','Safariの確認画面で「許可」を選択してください。現在地を取得しています…');
+ // getCurrentPosition is called synchronously inside this click handler.
+ locationRequest.request(fix=>{
+  permissionFix=fix;$('#requestLocation').disabled=false;$('#beginLocatedRun').disabled=false;
+  text('#requestLocation','位置情報を再確認する');
+  text('#locationStatus',fix.accuracy<=50?'現在地を取得しました。ランニングを開始できます。':'現在地は概算です。「正確な位置情報」をオンにすると軌跡と距離を計測しやすくなります。');
+  $('#locationPreview').hidden=false;drawRoute($('#locationPreview'),[fix]);
+ },error=>{
+  $('#requestLocation').disabled=false;$('#locationSettings').open=true;
+  text('#locationStatus',error.code===1?'位置情報が許可されていません。下の設定手順を確認してください。':error.code===3?'取得に時間がかかっています。屋外で、もう一度お試しください。':error.code===0?'SafariでHTTPSのアプリURLを直接開いてください。':'現在地を取得できません。位置情報サービスの設定を確認してください。');
+ });
+}
+async function beginRun(){if(tracker.active){navigate('run');return;}if(saveError)throw Error('前の記録を保存してから開始してください。');tracker.start();lastFix=permissionFix;$$('.coordinates').forEach(e=>e.remove());latest=null;navigate('run');drawLiveRoute();updateRun();watchGPS();void lock();}
 function updateRun(){const km=tracker.distance/1000*factor(),sec=tracker.seconds();text('#runDistance',km.toFixed(2));text('.run-distance .unit',unit());text('#runTime',time(sec));text('#runPace',pace(sec,km));text('#runSpeed',sec?(km/(sec/3600)).toFixed(1):'0.0');text('.run-stat:nth-child(2) span',`ペース /${unit()}`);text('.run-stat:nth-child(3) span',`平均速度 ${unit()}/h`);text('#runStatusChip',!tracker.active?'STARTで計測開始':tracker.paused?'一時停止中':'ランニング中…');text('#smallPauseButton span:last-child',tracker.paused?'再開':'一時停止');$('#mainRunUse').setAttribute('href',!tracker.active||tracker.paused?'#i-play':'#i-pause');$('#mainRunButton').setAttribute('aria-label',!tracker.active?'開始':tracker.paused?'再開':'一時停止');$('#smallPauseButton').disabled=!tracker.active;$('#finishRunButton').disabled=!tracker.active;}
 async function pauseRun(){if(!tracker.active)return startRun();if(tracker.paused){tracker.resume();if(watch!==null)navigator.geolocation.clearWatch(watch);clearInterval(timer);watchGPS();await lock();}else{tracker.pause();wake?.release();wake=null;}updateRun();}
 async function finishRun(){if(!tracker.active)return;close();latest=tracker.finish();stopWatch();saveError=true;renderResult();navigate('result');await persistResult();}
@@ -91,7 +114,7 @@ const informational={
  'map-info':['GPS軌跡','実際に取得した位置の軌跡を表示しています。背景の地図サービスには接続していません。共有画像には軌跡と位置情報を含めません。'],
  'ranking-info':['ランキングの集計','認定済みで、ランキング公開に同意した人の距離だけを集計します。期間はUTC基準です。端末保存の記録や未認定の記録は対象外です。'],
  'challenge-info':['チャレンジへの参加','開催中の企画に参加登録し、条件を満たす認定ランがある日に1口を付与します。賞品、開催期間、抽選は運営による設定が必要です。'],
- 'privacy':['データの取り扱い（開発版）','GPS取得は計測開始後のみです。端末保存モードの記録はこのブラウザ内に保存され、クラウドやPDLへ送られません。クラウドログイン時はSupabaseに記録とプロフィールを保存します。位置の詳細はランキングに公開しません。エクスポートと削除はマイページから行えます。正式公開前に運営者・問い合わせ先・保存期間を含むポリシーの確定が必要です。'],
+ 'privacy':['データの取り扱い（開発版）','GPS取得は「位置情報を許可する」を押した後に行います。端末保存モードの記録はこのブラウザ内に保存され、クラウドやPDLへ送られません。クラウドログイン時はSupabaseに記録とプロフィールを保存します。位置の詳細はランキングに公開しません。エクスポートと削除はマイページから行えます。正式公開前に運営者・問い合わせ先・保存期間を含むポリシーの確定が必要です。'],
  'terms':['開発版の利用について','このアプリは開発版です。GPSによる距離には誤差があります。安全な場所で利用し、画面操作は立ち止まって行ってください。PDL連携、正式な走行認定、賞品抽選はまだ運用されていません。正式な利用規約は公開前に確定します。']
 };
 async function sheet(kind){if(saveError&&kind==='history'){toast('未保存の走行記録を再保存してください。');return;}if(informational[kind]){modal(...[informational[kind][0],note(informational[kind][1])]);return;}
@@ -114,7 +137,7 @@ async function sheet(kind){if(saveError&&kind==='history'){toast('未保存の�
 function tab(group,prefix,value){$$(`${group} button`).forEach(b=>b.classList.toggle('active',Object.values(b.dataset).includes(value)));$$(`.${prefix}-panel`).forEach(p=>p.classList.toggle('active',p.id===`${prefix}-${value}`));}
 async function invite(){if(!team)return;const u=new URL(location.origin);u.searchParams.set('team',team.name);try{await navigator.clipboard.writeText(u.href);toast('招待リンクをコピーしました。')}catch{modal('招待リンク',`<input readonly aria-label="招待リンク" value="${esc(u.href)}">`);}}
 async function action(a){if(a==='close-sheet')close();else if(a==='auth')await openAuth();else if(a==='guest'){modal('この端末に保存して使う',note('走行記録と位置の軌跡を、このブラウザに保存します。ブラウザのデータ削除で記録も消えます。PDLやクラウドには送信されません。')+'<button class="primary-btn" id="enterGuest">端末保存で始める</button>');$('#enterGuest').onclick=safe(async()=>{await data.enterGuest();await loadApp();close();navigate('home')});}else if(a==='open-consent')sheet('consent');else if(a==='open-settings'){navigate('mypage');tab('#mypageTabs','mypage','settings');}else if(a==='open-full-map'){const points=screen==='result'?latest?.points:tracker.points;drawRoute($('.full-map-body'),points);$('#fullMap').classList.add('show');if(screen==='run')drawLiveRoute();}else if(a==='close-full-map')$('#fullMap').classList.remove('show');else if(a==='invite')await invite();}
-document.addEventListener('click',safe(async e=>{const target=e.target.closest('[data-action],[data-sheet],[data-go],[data-nav-go],[data-toast],[data-run-id]');if(!target||target.disabled)return;if(target.dataset.action)return action(target.dataset.action);if(target.dataset.sheet)return sheet(target.dataset.sheet);if(target.dataset.runId){latest=runs.find(r=>r.id===target.dataset.runId);close();renderResult();navigate('result');return;}if(target.dataset.go)return navigate(target.dataset.go);if(target.dataset.navGo)return navigate(target.dataset.navGo);if(target.dataset.toast)return toast(target.dataset.toast);}));
+document.addEventListener('click',safe(async e=>{const target=e.target.closest('[data-action],[data-sheet],[data-go],[data-nav-go],[data-toast],[data-run-id]');if(!target||target.disabled)return;if(target.dataset.action)return action(target.dataset.action);if(target.dataset.sheet)return sheet(target.dataset.sheet);if(target.dataset.runId){latest=runs.find(r=>r.id===target.dataset.runId);close();renderResult();navigate('result');return;}if(target.dataset.go)return navigate(target.dataset.go);if(target.dataset.navGo)return target.dataset.navGo==='run'&&!tracker.active?startRun():navigate(target.dataset.navGo);if(target.dataset.toast)return toast(target.dataset.toast);}));
 $('#sheetOverlay').onclick=e=>{if(e.target===$('#sheetOverlay'))close()};
 $('#homeStartButton').onclick=safe(startRun);$('#resultStartAgain').onclick=safe(startRun);$('#mainRunButton').onclick=safe(pauseRun);$('#smallPauseButton').onclick=safe(pauseRun);$('#finishRunButton').onclick=safe(()=>sheet('finish-run'));$('#shareButton').onclick=()=>sheet('share');
 $('#exportDataRow').onclick=()=>{download('jasmy-run-data.json',JSON.stringify({exported_at:new Date().toISOString(),storage:data.isGuest()?'device':'cloud',profile,runs},null,2));toast('全走行記録をエクスポートしました。')};
@@ -136,5 +159,9 @@ $('#mypage-consent').insertAdjacentHTML('beforeend','<div class="consent-card"><
 $('#rankingConsent').onclick=safe(async()=>{const next={...profile,consents:{...profile.consents,ranking:!profile.consents.ranking}};await data.saveProfile(next);profile=next;$('#rankingConsent').classList.toggle('on',!!profile.consents.ranking);$('#rankingConsent').setAttribute('aria-checked',!!profile.consents.ranking);toast('ランキング公開設定を保存しました。')});
 safe(async()=>{navigate('login');if(await data.restore()){await loadApp();navigate('home');}if(ready){$('#rankingConsent').classList.toggle('on',!!profile.consents.ranking);$('#rankingConsent').setAttribute('aria-checked',!!profile.consents.ranking);}updateRun();})();
 
-$('#retryGPS').onclick=$('#locateGPS').onclick=safe(()=>tracker.active?watchGPS():startRun());
+$('#retryGPS').onclick=$('#locateGPS').onclick=safe(openLocation);
+$('#requestLocation').onclick=requestLocation;
+$('#beginLocatedRun').onclick=safe(()=>{if(!permissionFix)return;if(Date.now()-permissionFix.timestamp>30000){requestLocation();return;}if(tracker.active){lastFix=permissionFix;navigate('run');drawLiveRoute();watchGPS();}else return beginRun();});
+$('#viewRunScreen').onclick=()=>{navigate('run');drawLiveRoute();};
+$('#routeExample').ontoggle=()=>{if(!$('#routeExample').open)return;drawRoute($('#routeDemo'),[{lat:43.06,lon:141.35},{lat:43.061,lon:141.3505},{lat:43.0615,lon:141.352},{lat:43.0625,lon:141.3525},{lat:43.063,lon:141.354}]);text('#routeDemo .map-caption','軌跡の表示例・保存されません');};
 initLanguage(()=>{if(ready)renderSummary();updateRun();if(latest)renderResult();});
