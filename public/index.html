@@ -48,10 +48,7 @@
     <symbol id="i-log-out" viewBox="0 0 24 24"><path d="M10 4H4v16h6M14 8l4 4-4 4m4-4H8"/></symbol>
   </svg>
 
-  <div class="statusbar" aria-hidden="true">
-    <span>9:41</span>
-    <span class="status-icons"><span class="status-signal"><i></i><i></i><i></i><i></i></span><span class="wifi"></span><span class="battery"></span></span>
-  </div>
+
 
   <!-- 1. Login -->
   <section class="screen login active" id="screen-login" data-nav="none"><label class="login-language">Language <select id="loginLanguage" class="language-choice" aria-label="Language"><option value="ja">日本語</option><option value="en">English</option></select></label>
@@ -111,8 +108,8 @@
           </div>
         </div>
         <div class="card challenge-mini" data-go="challenge">
-          <div class="challenge-mini-copy"><span class="mini-title">Monthly Challenge</span><b>Hokkaido Running Challenge</b><p>走って北海道グルメを当てよう！</p><div class="entry-line"><svg class="icon icon-xs orange"><use href="#i-trophy"></use></svg><span id="homeEntries">7 / 10 Entries</span></div></div><button class="challenge-detail">詳しく見る<svg class="icon icon-xs"><use href="#i-chevron-right"></use></svg></button>
-          <div class="challenge-mini-image"><img src="/assets/6a368f0d9b57.png" alt="北海道グルメ" /></div>
+          <div class="challenge-mini-copy"><span class="mini-title">Monthly Challenge</span><b>毎月開催・ご当地グルメ</b><p>走って北海道グルメを当てよう！</p><div class="entry-line"><svg class="icon icon-xs orange"><use href="#i-trophy"></use></svg><span id="homeEntries">7 / 10 Entries</span></div></div><button class="challenge-detail">詳しく見る<svg class="icon icon-xs"><use href="#i-chevron-right"></use></svg></button>
+          <div class="challenge-mini-image"><img src="/assets/hokkaido-seafood.webp" alt="北海道のカニ・いくら・ホタテのイメージ" /><span class="image-caption">賞品イメージ</span></div>
         </div>
         <button class="primary-btn home-start" id="homeStartButton"><svg class="icon"><use href="#i-run"></use></svg>START RUN</button><button class="secondary-btn" data-sheet="history">走行履歴を見る</button>
       </div>
@@ -231,10 +228,11 @@
       <div class="challenge-content">
         <div class="segmented challenge-tabs" id="challengeTabs"><button class="active" data-challenge-tab="current">開催中</button><button data-challenge-tab="past">過去のチャレンジ</button></div>
         <div id="challenge-current">
-          <div class="challenge-hero"><div class="campaign-copy"><strong>RUN HOKKAIDO</strong><h2>走って北海道グルメを当てよう！</h2><span>Monthly Challenge</span></div><img src="/assets/f49e476a47a6.png" alt="北海道海鮮セット" /></div>
-          <div class="challenge-meta"><div class="meta-row"><div class="meta-icon"><svg class="icon icon-sm"><use href="#i-calendar"></use></svg></div><div class="meta-copy"><span class="label">開催期間</span><b>2026年9月1日 ～ 9月30日</b></div></div><div class="prize-row"><img class="prize-image" src="/assets/f49e476a47a6.png" alt="北海道海鮮セット" /><div class="prize-copy"><span class="label">賞品</span><b>北海道海鮮セット（30名様）</b><div class="sponsor">スポンサー未決定</div></div></div></div>
-          <div class="notice" id="challengeNotice">企画イメージ・実際の開催と抽選は未開始</div><div class="entry-card"><span class="section-label">参加状況</span><div class="entry-value"><span id="challengeEntries">7</span> Entries</div><div class="entry-sub">今月の走行日数：<span id="challengeRunDays">7</span>日</div><div class="entry-progress-row"><div class="progress"><span id="challengeProgress" style="width:70%"></span></div><span id="challengeProgressLabel">7 / 10</span></div><div class="next-entry"><span class="label">次のエントリー</span><b>明日 2 km以上走ってエントリーを獲得しよう！</b></div><div class="draw-date"><span class="label">抽選予定日</span><b>2026年10月3日</b></div></div>
+          <div class="challenge-hero"><div class="campaign-copy"><strong>RUN HOKKAIDO</strong><h2>走って北海道グルメを当てよう！</h2><span>毎月開催・ご当地グルメ</span></div><img src="/assets/hokkaido-seafood.webp" alt="北海道海鮮セット" /></div>
+          <div class="challenge-meta"><div class="meta-row"><div class="meta-icon"><svg class="icon icon-sm"><use href="#i-calendar"></use></svg></div><div class="meta-copy"><span class="label">開催期間</span><b>2026年9月1日 ～ 9月30日</b></div></div><div class="prize-row"><img class="prize-image" src="/assets/hokkaido-seafood.webp" alt="北海道海鮮セット" /><div class="prize-copy"><span class="label">賞品</span><b>北海道海鮮セット（30名様）</b><div class="sponsor">スポンサー未決定</div></div></div></div>
+          <section class="monthly-explainer"><h3>毎月、走ってご当地グルメに応募</h3><p>毎月開催するチャレンジで、全国のご当地グルメが当たります。当選者はこのページにニックネームで掲示します。</p><p>賞品の受取には、PDLによるマイナンバーカード認証が必要です。</p></section><div class="notice" id="challengeNotice">企画イメージ・実際の開催と抽選は未開始</div><div class="entry-card"><span class="section-label">参加状況</span><div class="entry-value"><span id="challengeEntries">7</span> Entries</div><div class="entry-sub">今月の走行日数：<span id="challengeRunDays">7</span>日</div><div class="entry-progress-row"><div class="progress"><span id="challengeProgress" style="width:70%"></span></div><span id="challengeProgressLabel">7 / 10</span></div><div class="next-entry"><span class="label">次のエントリー</span><b>明日 2 km以上走ってエントリーを獲得しよう！</b></div><div class="draw-date"><span class="label">抽選予定日</span><b>2026年10月3日</b></div></div>
         </div>
+        <section class="winner-panel"><h3>当選者発表</h3><label for="winnerMonth">開催月を選択</label><select id="winnerMonth"><option value="">発表待ち</option></select><div id="winnerList" aria-live="polite"><p>当選者の発表をお待ちください。</p></div><div class="claim-note"><h4>当選された方へ</h4><p>賞品受取には、PDLによるマイナンバーカード認証が必要です。</p><button class="secondary-btn" data-sheet="prize-claim">受取手続きについて</button></div></section>
         <div class="past-challenge" id="challenge-past"><div class="past-card"><b>August — RUN OKINAWA</b><p>沖縄の海と食をテーマにした月間チャレンジ</p><span class="small green">参考企画・未開催</span></div><div class="past-card"><b>July — RUN KYOTO</b><p>京都の伝統工芸・ご当地グルメチャレンジ</p><span class="small green">参考企画・未開催</span></div></div>
       </div>
     </div>

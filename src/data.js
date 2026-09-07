@@ -29,3 +29,5 @@ export async function leaveTeam(){if(guest)return;check(await supabase.from('tea
 export async function challenges(){if(guest)return [];return check(await supabase.from('challenges').select('*').order('starts_on',{ascending:false}));}
 export async function entries(){if(guest)return [];return check(await supabase.from('challenge_entries').select('*').eq('user_id',user.id));}
 export async function enroll(id){if(guest)throw Error('参加にはクラウドのログインが必要です。');check(await supabase.from('challenge_participants').upsert({challenge_id:id,user_id:user.id}));}
+
+export async function publishedWinners(){if(!supabase)return [];return check(await supabase.from('challenge_winners').select('id,nickname,published_at,challenge_month,challenge_title').order('published_at',{ascending:false}).limit(500));}
