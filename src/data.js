@@ -1,6 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 const url=__SUPABASE_URL__,key=__SUPABASE_KEY__;
 export const supabase=url&&key?createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+export const supabaseUrl=url,supabaseAnonKey=key;
 export let user=null;
 let guest=false;
 const blank=()=>({nickname:'Runner',country:'jp',consents:{analysis:false,research:false,marketing:false},unit:'km'});
@@ -10,7 +11,7 @@ function check(r){if(r.error)throw r.error;return r.data;}
 export const isGuest=()=>guest;
 export async function restore(){if(supabase){const s=check(await supabase.auth.getSession());user=s.session?.user||null;}return user;}
 export async function enterGuest(){guest=true;user=null;return load();}
-export async function signIn(email,password,signup=false){if(!supabase)throw Error('クラウド接続の設定が必要です。端末保存で利用できます。');const r=signup?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password});const d=check(r);user=d.session?.user||null;guest=false;return !!user;}
+export async function signInWithGoogle(){if(!supabase)throw Error('クラウド接続の設定が必要です。端末保存で利用できます。');check(await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}}));}
 export async function logout(){if(supabase&&user)check(await supabase.auth.signOut());user=null;guest=false;}
 export async function load(){
  if(guest)return {profile:await local('profile')||blank(),runs:await local('runs')||[]};
@@ -31,3 +32,11 @@ export async function entries(){if(guest)return [];return check(await supabase.f
 export async function enroll(id){if(guest)throw Error('参加にはクラウドのログインが必要です。');check(await supabase.from('challenge_participants').upsert({challenge_id:id,user_id:user.id}));}
 
 export async function publishedWinners(){if(!supabase)return [];return check(await supabase.from('challenge_winners').select('id,nickname,published_at,challenge_month,challenge_title').order('published_at',{ascending:false}).limit(500));}
+
+// Apple Watch (via the user's own "Duffy" app) step/distance sync.
+// Tokens are opaque and shown once; only their hash lives server-side. Totals here
+// never reach rankings, team distance or challenge entries — those come from runs only.
+export async function healthSyncStatus(){if(guest||!user)return {connected:false};return check(await supabase.rpc('health_sync_status'));}
+export async function rotateHealthSyncToken(){if(guest||!user)throw Error('クラウドのログインが必要です。');return check(await supabase.rpc('rotate_health_sync_token'));}
+export async function revokeHealthSyncToken(){if(guest||!user)return;check(await supabase.rpc('revoke_health_sync_token'));}
+export async function healthToday(){if(guest||!user)return null;const day=new Date().toISOString().slice(0,10);return check(await supabase.from('health_daily_totals').select('steps,distance_m,updated_at').eq('day',day).maybeSingle());}
