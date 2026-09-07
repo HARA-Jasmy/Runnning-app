@@ -34,6 +34,9 @@ npm run dev
 
 ## Supabaseの接続
 
+2026-09-07: `Running App on PDL`（`masvfncvfhlhwistwhwf`）へ初期スキーマを適用済み。`supabase.client.json`に公開用の接続URLとpublishable keyを設定しています。秘密鍵は含みません。環境変数で上書きできます。以下の適用手順は別環境を作る場合のものです。
+
+
 1. Supabaseプロジェクトを用意。
 2. SQL Editorで `supabase/migrations/202609070001_initial.sql` を一度実行。
 3. AuthenticationでEmail認証を有効にし、公開URLをSite URLと許可するRedirect URLsに登録。
@@ -52,7 +55,7 @@ npm run dev
 3. 上記の公開用Supabase環境変数をPreview/Productionに設定してDeploy。
 4. 発行URLをSupabaseの認証URL設定へ追加。
 
-接続値がない場合もビルドできます。端末保存モードは動作し、メール認証は設定待ちと表示されます。
+現在は設定済みのSupabaseへ接続するビルドです。両方の環境変数を空文字に設定すると端末保存のみのビルドになります。
 
 ## PDLと本番提供までに必要なもの
 
@@ -80,6 +83,11 @@ PDLの認証仕様・接続先・クライアント情報が未提供なので�
 - `supabase/migrations/`: RLS、権限制御、集計RPC
 - `tests/`: GPS計算、停止／再開、日次集計、PostgreSQL互換実行環境での権限・認定・抽選口数テスト
 
-`npm test` と `npm run build` を実行済み。実際のSupabaseプロジェクトへの適用、Vercelの公開、実機GPS、メール到達、PDLとの接続テストは接続後に行います。
+`npm test` と `npm run build` を実行済み。Supabaseへの適用と7テーブルのRLS・権限設定を確認済み。Vercel公開、実機GPS、メール到達、PDL接続は未検証です。
 
 現段階ではフレームワークを全面置換せず、承認済みHTML/CSSをES Modulesとして分離しました。これにより画像やレイアウトを引き継ぎつつ、Vercelでそのままビルドできます。
+
+### Supabaseアドバイザーの確認
+
+4件の警告は、ログイン利用者へ意図的に公開する限定RPC（本人データ削除、所属チーム取得、公開同意済みランキング、チーム参加）がSECURITY DEFINERであることの通知です。各関数は本人IDまたは公開同意を条件とし、anonの実行権限を取り消しています。teamsのポリシー未作成通知は直接アクセスを禁止してRPC経由に限定する設計によるものです。
+参照: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable

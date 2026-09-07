@@ -1,7 +1,8 @@
 import {build} from 'esbuild';
-import {cp,mkdir,rm} from 'node:fs/promises';
+import {cp,mkdir,rm,readFile} from 'node:fs/promises';
 await rm('dist',{recursive:true,force:true});await mkdir('dist',{recursive:true});await cp('public','dist',{recursive:true});
-const url=process.env.PUBLIC_SUPABASE_URL||'',key=process.env.PUBLIC_SUPABASE_ANON_KEY||'';
+const defaults=JSON.parse(await readFile('supabase.client.json','utf8'));
+const url=process.env.PUBLIC_SUPABASE_URL??defaults.url,key=process.env.PUBLIC_SUPABASE_ANON_KEY??defaults.publishableKey;
 if(!!url!==!!key)throw Error('Set both PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY');
 if(url&&!url.startsWith('https://'))throw Error('Supabase URL must use HTTPS');
 if(key.startsWith('sb_secret_'))throw Error('Never expose a secret key');
