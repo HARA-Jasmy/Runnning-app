@@ -54,7 +54,7 @@
   </div>
 
   <!-- 1. Login -->
-  <section class="screen login active" id="screen-login" data-nav="none">
+  <section class="screen login active" id="screen-login" data-nav="none"><label class="login-language">Language <select id="loginLanguage" class="language-choice" aria-label="Language"><option value="ja">日本語</option><option value="en">English</option></select></label>
     <div class="screen-scroll">
       <div class="login-wrap">
         <div class="brand-row"><img class="brand-logo" src="/assets/6034335f3540.png" alt="Jasmy" /></div>
@@ -111,7 +111,7 @@
           </div>
         </div>
         <div class="card challenge-mini" data-go="challenge">
-          <div class="challenge-mini-copy"><span class="mini-title">Monthly Challenge</span><b>Hokkaido Running Challenge</b><p>今月走って北海道グルメを当てよう！</p><div class="entry-line"><svg class="icon icon-xs orange"><use href="#i-trophy"></use></svg><span id="homeEntries">7 / 10 Entries</span></div></div><button class="challenge-detail">詳しく見る<svg class="icon icon-xs"><use href="#i-chevron-right"></use></svg></button>
+          <div class="challenge-mini-copy"><span class="mini-title">Monthly Challenge</span><b>Hokkaido Running Challenge</b><p>走って北海道グルメを当てよう！</p><div class="entry-line"><svg class="icon icon-xs orange"><use href="#i-trophy"></use></svg><span id="homeEntries">7 / 10 Entries</span></div></div><button class="challenge-detail">詳しく見る<svg class="icon icon-xs"><use href="#i-chevron-right"></use></svg></button>
           <div class="challenge-mini-image"><img src="/assets/6a368f0d9b57.png" alt="北海道グルメ" /></div>
         </div>
         <button class="primary-btn home-start" id="homeStartButton"><svg class="icon"><use href="#i-run"></use></svg>START RUN</button><button class="secondary-btn" data-sheet="history">走行履歴を見る</button>
@@ -123,7 +123,7 @@
   <section class="screen" id="screen-run" data-nav="run">
     <div class="screen-scroll">
       <div class="run-topline"><div class="gps-status"><b>GPS</b><span class="gps-dots"><i></i><i></i><i></i></span><span>良好</span></div><div class="pill-row"><span class="accuracy">位置精度 ±3m</span><button class="icon-button" data-sheet="run-settings" aria-label="計測設定"><svg class="icon"><use href="#i-gear"></use></svg></button></div></div>
-      <div class="run-content">
+      <div class="run-content"><div class="gps-help"><p id="gpsHelp" role="status">STARTで位置情報の取得を開始します。</p><button id="retryGPS" class="secondary-btn">GPSを再取得</button></div>
         <div class="run-distance"><div><span class="number" id="runDistance">5.24</span></div><div class="unit">km</div></div>
         <div class="run-stats">
           <div class="run-stat"><b id="runTime">30:24</b><span>時間</span></div>
@@ -141,7 +141,7 @@
             <circle class="route-start" cx="69" cy="172" r="10"/>
             <circle class="route-live-dot" id="runRouteDot" cx="296" cy="77" r="8"/>
           </svg>
-          <div class="map-tools"><button class="map-tool" data-sheet="map-info"><svg class="icon"><use href="#i-target"></use></svg></button><button class="map-tool" data-action="open-full-map"><svg class="icon"><use href="#i-map"></use></svg></button></div>
+          <div class="map-tools"><button class="map-tool" id="locateGPS" aria-label="GPSを再取得"><svg class="icon"><use href="#i-target"></use></svg></button><button class="map-tool" data-action="open-full-map"><svg class="icon"><use href="#i-map"></use></svg></button></div>
           <div class="run-chip" id="runStatusChip">ランニング中...</div>
         </div>
         <div class="movement-banner" id="movementBanner"><svg class="icon icon-sm orange"><use href="#i-info"></use></svg><span>移動パターンを確認しています。記録は継続し、終了後にサーバーで認定距離を判定します。</span></div>
@@ -213,7 +213,7 @@
       <div class="challenge-content">
         <div class="segmented challenge-tabs" id="challengeTabs"><button class="active" data-challenge-tab="current">開催中</button><button data-challenge-tab="past">過去のチャレンジ</button></div>
         <div id="challenge-current">
-          <div class="challenge-hero"><img src="/assets/a2273730506d.png" alt="RUN HOKKAIDO" /></div>
+          <div class="challenge-hero"><div class="campaign-copy"><strong>RUN HOKKAIDO</strong><h2>走って北海道グルメを当てよう！</h2><span>Monthly Challenge</span></div><img src="/assets/f49e476a47a6.png" alt="北海道海鮮セット" /></div>
           <div class="challenge-meta"><div class="meta-row"><div class="meta-icon"><svg class="icon icon-sm"><use href="#i-calendar"></use></svg></div><div class="meta-copy"><span class="label">開催期間</span><b>2026年9月1日 ～ 9月30日</b></div></div><div class="prize-row"><img class="prize-image" src="/assets/f49e476a47a6.png" alt="北海道海鮮セット" /><div class="prize-copy"><span class="label">賞品</span><b>北海道海鮮セット（30名様）</b><div class="sponsor">スポンサー未決定</div></div></div></div>
           <div class="notice" id="challengeNotice">企画イメージ・実際の開催と抽選は未開始</div><div class="entry-card"><span class="section-label">参加状況</span><div class="entry-value"><span id="challengeEntries">7</span> Entries</div><div class="entry-sub">今月の走行日数：<span id="challengeRunDays">7</span>日</div><div class="entry-progress-row"><div class="progress"><span id="challengeProgress" style="width:70%"></span></div><span id="challengeProgressLabel">7 / 10</span></div><div class="next-entry"><span class="label">次のエントリー</span><b>明日 2 km以上走ってエントリーを獲得しよう！</b></div><div class="draw-date"><span class="label">抽選予定日</span><b>2026年10月3日</b></div></div>
         </div>
@@ -225,7 +225,7 @@
   <!-- 8. My page -->
   <section class="screen" id="screen-mypage" data-nav="mypage">
     <div class="screen-scroll">
-      <div class="profile-head"><img class="avatar" src="/assets/83f73b689e45.png" alt="Hiroshi" /><div class="profile-copy"><b id="profileName">Hiroshi</b><span>Japan</span></div><button class="profile-edit" data-sheet="profile-edit">プロフィールを編集</button><button class="icon-button" data-action="open-settings"><svg class="icon icon-sm"><use href="#i-gear"></use></svg></button></div>
+      <div class="profile-head"><button class="avatar-button" data-sheet="profile-edit" aria-label="プロフィール画像を変更"><img class="avatar" src="/assets/83f73b689e45.png" alt="プロフィール画像" /></button><div class="profile-copy"><b translate="no" id="profileName">Hiroshi</b><span>Japan</span></div><button class="profile-edit" data-sheet="profile-edit">プロフィールを編集</button><button class="icon-button" data-action="open-settings"><svg class="icon icon-sm"><use href="#i-gear"></use></svg></button></div>
       <div class="mypage-content">
         <div class="segmented mypage-tabs" id="mypageTabs"><button class="active" data-mypage-tab="data">データ</button><button data-mypage-tab="consent">同意管理</button><button data-mypage-tab="settings">設定</button></div>
         <div class="mypage-panel active" id="mypage-data">
@@ -235,7 +235,7 @@
           <div class="setting-list"><div class="setting-row" data-sheet="stored-data"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-database"></use></svg></span><button>保存されているデータ</button><span class="chevron">›</span></div><div class="setting-row" data-sheet="access-log"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-eye"></use></svg></span><button>データのアクセス状況</button><span class="chevron">›</span></div><div class="setting-row" id="exportDataRow"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-download"></use></svg></span><button>データのエクスポート</button><span class="chevron">›</span></div><div class="setting-row" data-sheet="delete-data"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></span><button>アプリデータの削除</button><span class="chevron">›</span></div></div>
         </div>
         <div class="mypage-panel" id="mypage-consent"><div class="consent-card"><div class="consent-card-head"><div><h3>ランニング計測</h3><p>位置情報と時刻を距離計測に利用します。計測開始時に位置情報の許可を求めます。</p></div><button class="switch on" disabled aria-label="必須の同意"></button></div><div class="expiry">必須・サービス利用中</div></div><div class="consent-card"><div class="consent-card-head"><div><h3>健康・運動分析</h3><p>過去の走行データを使って、月次インサイトや運動傾向を生成します。</p></div><button class="switch on" data-consent="analysis" aria-label="健康・運動分析"></button></div><div class="expiry">有効期限：設定なし</div></div><div class="consent-card"><div class="consent-card-head"><div><h3>研究・統計利用</h3><p>研究へのデータ提供は準備中です。現在は送信しません。</p></div><button class="switch" data-consent="research" aria-label="研究・統計利用"></button></div><div class="expiry">現在、共有先はありません</div></div><div class="consent-card"><div class="consent-card-head"><div><h3>マーケティング通知</h3><p>通知配信は準備中です。現在は送信しません。</p></div><button class="switch on" data-consent="marketing" aria-label="マーケティング通知"></button></div><div class="expiry">現在は未配信</div></div></div>
-        <div class="mypage-panel" id="mypage-settings"><div class="settings-group-title">表示</div><div class="setting-list"><div class="setting-row"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-language"></use></svg></span><button data-toast="現在の対応言語は日本語です。">言語</button><span class="row-value">日本語 ›</span></div><div class="setting-row"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-globe"></use></svg></span><button id="unitToggle">単位</button><span class="row-value" id="unitValue">km ›</span></div></div><div class="settings-group-title">通知</div><div class="setting-list"><div class="setting-row"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-notify"></use></svg></span><button>チャレンジ通知</button><button class="switch on" data-consent="challenge-notification"></button></div></div><div class="settings-group-title">アカウント</div><div class="setting-list"><div class="setting-row"><span class="row-icon logout"><svg class="icon icon-sm"><use href="#i-log-out"></use></svg></span><button class="logout" id="logoutButton">ログアウト</button><span class="chevron">›</span></div></div></div>
+        <div class="mypage-panel" id="mypage-settings"><div class="settings-group-title">表示</div><div class="setting-list"><div class="setting-row"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-language"></use></svg></span><label for="languageSelect">言語 / Language</label><select id="languageSelect" class="language-choice"><option value="ja">日本語</option><option value="en">English</option></select></div><div class="setting-row"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-globe"></use></svg></span><button id="unitToggle">単位</button><span class="row-value" id="unitValue">km ›</span></div></div><div class="settings-group-title">通知</div><div class="setting-list"><div class="setting-row"><span class="row-icon"><svg class="icon icon-sm"><use href="#i-notify"></use></svg></span><button>チャレンジ通知</button><button class="switch on" data-consent="challenge-notification"></button></div></div><div class="settings-group-title">アカウント</div><div class="setting-list"><div class="setting-row"><span class="row-icon logout"><svg class="icon icon-sm"><use href="#i-log-out"></use></svg></span><button class="logout" id="logoutButton">ログアウト</button><span class="chevron">›</span></div></div></div>
       </div>
     </div>
   </section>

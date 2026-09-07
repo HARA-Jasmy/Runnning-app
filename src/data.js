@@ -19,7 +19,7 @@ export async function load(){
  const runs=[];for(let offset=0;;offset+=100){const batch=check(await supabase.from('runs').select('*').eq('user_id',user.id).order('started_at',{ascending:false}).order('id').range(offset,offset+99));runs.push(...batch);if(batch.length<100)break;}
  return {profile:p||blank(),runs};
 }
-export async function saveProfile(profile){if(guest)return local('profile',profile);check(await supabase.from('profiles').upsert({id:user.id,nickname:profile.nickname,country:profile.country,consents:profile.consents,unit:profile.unit}));}
+export async function saveProfile(profile){if(guest)return local('profile',profile);check(await supabase.from('profiles').upsert({id:user.id,nickname:profile.nickname,country:profile.country,consents:profile.consents,unit:profile.unit,avatar_data:profile.avatar_data||null}));}
 export async function saveRun(run){if(guest){const runs=await local('runs')||[];if(!runs.some(r=>r.id===run.id))runs.unshift(run);await local('runs',runs);return run;}return check(await supabase.from('runs').upsert({...run,user_id:user.id},{onConflict:'id'}).select().single());}
 export async function deleteData(){if(guest){await local('runs',[],true);await local('profile',{},true);}else check(await supabase.rpc('delete_my_app_data'));}
 export async function rankings(period,country,type){if(guest)return [];return check(await supabase.rpc('get_rankings',{p_period:period,p_country:country==='all'?null:country,p_type:type}));}

@@ -91,3 +91,10 @@ PDLの認証仕様・接続先・クライアント情報が未提供なので�
 
 4件の警告は、ログイン利用者へ意図的に公開する限定RPC（本人データ削除、所属チーム取得、公開同意済みランキング、チーム参加）がSECURITY DEFINERであることの通知です。各関数は本人IDまたは公開同意を条件とし、anonの実行権限を取り消しています。teamsのポリシー未作成通知は直接アクセスを禁止してRPC経由に限定する設計によるものです。
 参照: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+
+## GPS・画像・言語の更新
+
+- GPSエラーで自動停止しないよう修正。粗い位置も参考位置として表示し、距離計測は精度50m以内の点のみ。再取得と権限エラーの案内を追加。端末のGPS権限そのものはアプリから変更できません。
+- プロフィールからJPEG/PNG/WebP（10MB以下）を選択、中央切り抜き・256px JPEG変換後に保存。本人のprofiles行に保存し、ゲストではIndexedDBに保存。新環境では初期SQLの後に `docs/profile-avatar.sql` を実行してください。既存環境には適用済みです。
+- 設定のLanguageで日本語・英語を切替。選択はブラウザに保存。
+- 北海道バナーを写真とHTMLテキストに分離。文言は「走って北海道グルメを当てよう！」。抽選未開催の注記は継続。
