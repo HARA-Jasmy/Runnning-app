@@ -17,14 +17,15 @@ npm run dev
 
 ## 実装した機能
 
-- ログイン画面：端末保存への明示同意、設定後のSupabaseメール認証・登録。
-- ホーム：実際の記録から今日／今月の距離・時間・ペースを集計。
+- ログイン画面：端末保存への明示同意、設定後のSupabase認証によるGoogleログイン統一（メール・パスワード方式は廃止）。
+- ホーム：実際の記録から今日／今月の距離・時間・ペースを集計。Apple Watch連携時は今日の歩数・距離を別枠で参考表示。
 - ラン：実GPS、高精度取得、一時停止／再開／終了、取得した軌跡、実測スプリット。
 - 結果・履歴：保存、再表示、保存失敗時の再試行、位置情報を含めない共有画像。
 - ランキング：個人／チーム、週／月／全期間、国別。サーバー認定済み・公開同意済みのみ。
 - チーム：名前で作成／参加、退出、招待リンク、メンバーと認定距離。
 - チャレンジ：開催情報、参加登録、サーバー認定後の1日1口・上限付き集計。
-- マイページ：プロフィール、km／mile、運動分析・ランキング公開の同意、JSONエクスポート、実データ削除。
+- マイページ：プロフィール、km／mile、運動分析・ランキング公開の同意、JSONエクスポート、実データ削除、Apple Watch（Duffy）連携コードの発行・解除。
+- スポンサー広告：チャレンジ詳細の賞品下・走行結果下・ホーム下部の3箇所に「PR」表示付きで掲載。計測中・位置情報許可画面には表示しない。内容は`public/ads.json`で切替可能。
 
 ## データの保存先
 
@@ -38,12 +39,24 @@ npm run dev
 
 
 1. Supabaseプロジェクトを用意。
-2. SQL Editorで `supabase/migrations/202609070001_initial.sql` を一度実行。
-3. AuthenticationでEmail認証を有効にし、公開URLをSite URLと許可するRedirect URLsに登録。
+2. SQL Editorで `supabase/migrations/202609070001_initial.sql` を一度実行。続けて `supabase/migrations/202609072_health_sync.sql`（Apple Watch連携用）も実行。
+3. Authentication → Sign In / Providers でGoogleを有効化し、Google Cloud ConsoleのOAuthクライアントID・シークレットを設定（下記「Googleログインの設定」）。公開URLをSite URLと許可するRedirect URLsに登録。
 4. ビルド環境に次の2つを設定。
    - `PUBLIC_SUPABASE_URL`: `https://<project>.supabase.co`
    - `PUBLIC_SUPABASE_ANON_KEY`: publishable key または anon key
 5. `npm run build` で再ビルド。
+
+### Googleログインの設定
+
+メール・パスワード方式は廃止し、Googleログインに統一した。VercelやSupabaseのプロジェクトへ利用者を個別に招待する必要はない。
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials)でOAuthクライアントID（種類: ウェブアプリケーション）を作成。
+2. 承認済みのリダイレクトURIに `https://<project>.supabase.co/auth/v1/callback` を追加。
+3. SupabaseダッシュボードのAuthentication → Providers → GoogleでクライアントID・シークレットを設定して有効化。
+4. Authentication → URL ConfigurationのSite URLと Redirect URLsに、公開しているアプリのURL（例: `https://<app>.vercel.app`）を追加。
+5. ローカル確認用に `http://localhost:3000` もRedirect URLsに追加できる。
+
+この設定は一度だけでよく、以降はどのGoogleアカウントでもそのままログインできる。
 
 **service_roleキー、secret keyはブラウザに渡さないでください。** ビルドで検出できる形式は拒否します。
 ローカルで設定する場合は `.env.example` を `.env` にコピーし、`node --env-file=.env scripts/dev.mjs` で起動します。`.env`はGit管理対象外です。
@@ -74,13 +87,25 @@ PDLの認証仕様・接続先・クライアント情報が未提供なので�
 - チームは名前で誰でも参加できる公開チーム方式。退出前の認定記録はその当時のチームに残ります。
 - 正式な利用規約・プライバシーポリシー、認定運用、景品と抽選処理、アカウント削除運用を確定してから一般公開してください。
 
+## Apple Watch（Duffy）連携
+
+Apple Watchで記録した歩数・走行距離を、利用者自身が用意する自作アプリ／ショートカット「Duffy」から
+HTTP POSTでこのアプリへ同期できる。マイページの「Apple Watch連携（Duffy）」から連携コードを発行し、
+Duffy側にそのコードとエンドポイントを設定する。技術仕様は[docs/apple-watch-sync.md](docs/apple-watch-sync.md)を参照。
+
+歩数・距離はホームとマイページに参考表示するのみで、GPSによる実走行記録とは別に保存する。走行認定・ランキング・
+チーム距離・チャレンジのエントリー計算には使用しない。連携コードはSHA-256ハッシュのみサーバーに保存し、
+平文は発行時に一度だけ表示する。既存のSupabase環境には `supabase/migrations/202609072_health_sync.sql` の適用が必要。
+
 ## 構成・検証
 
-- `public/`: 既存UI・CSS・元画像（画像データを再生成せず抽出）
+- `public/`: 既存UI・CSS・元画像（画像データを再生成せず抽出）、`ads.json`（スポンサー広告3枠の差し替え用データ）
 - `src/app.js`: 画面制御と実操作
 - `src/tracker.js`: GPS距離・時間・スプリット・集計
 - `src/data.js`: 端末保存／Supabaseのデータアクセス
-- `supabase/migrations/`: RLS、権限制御、集計RPC
+- `src/ads.js`: `public/ads.json`を読み込んでスポンサー広告枠を描画
+- `supabase/migrations/`: RLS、権限制御、集計RPC、Apple Watch（Duffy）連携用トークン・同期関数
+- `docs/apple-watch-sync.md`: Apple Watch（Duffy）連携のHTTP契約
 - `tests/`: GPS計算、停止／再開、日次集計、PostgreSQL互換実行環境での権限・認定・抽選口数テスト
 
 `npm test` と `npm run build` を実行済み。Supabaseへの適用と7テーブルのRLS・権限設定を確認済み。Vercel公開、実機GPS、メール到達、PDL接続は未検証です。
