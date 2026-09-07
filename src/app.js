@@ -34,11 +34,21 @@ async function lock(){try{wake=await navigator.wakeLock?.request('screen')}catch
 function stopWatch(){gpsEpoch++;if(watch!==null)navigator.geolocation.clearWatch(watch);watch=null;clearInterval(timer);timer=null;wake?.release();wake=null;}
 let lastFix=null,gpsEpoch=0;
 function watchGPS(){
- if(!navigator.geolocation||!window.isSecureContext)throw Error('GPS計測にはHTTPSと位置情報対応ブラウザが必要です。');
  if(watch!==null)navigator.geolocation.clearWatch(watch);
- clearInterval(timer);const epoch=++gpsEpoch;
+ clearInterval(timer);timer=setInterval(updateRun,1000);const epoch=++gpsEpoch;
+ if(!navigator.geolocation||!window.isSecureContext){
+  text('.gps-status span:last-child','GPS利用不可');
+  text('#gpsHelp','この環境では位置情報を利用できません。時間の計測は続けられます。距離を計測するにはHTTPSのアプリURLをSafariまたはChromeで開いてください。');
+  return;
+ }
+ const onError=err=>{
+  if(epoch!==gpsEpoch||!tracker.active)return;
+  text('.gps-status span:last-child',err.code===1||err.name==='SecurityError'?'許可が必要':'再取得待ち');
+  text('#gpsHelp',err.code===1||err.name==='SecurityError'?'端末とブラウザの位置情報を許可し、GPSを再取得してください。アプリ内ブラウザの場合はSafariまたはChromeで開いてください。':err.code===3?'GPS取得がタイムアウトしました。屋外でGPSを再取得してください。':'現在地を取得できません。端末の位置情報をオンにして再取得してください。');
+ };
+
  text('.gps-status span:last-child','取得中');text('#gpsHelp','位置情報の利用を許可してください。屋外では精度が改善します。');
- watch=navigator.geolocation.watchPosition(pos=>{
+ try {watch=navigator.geolocation.watchPosition(pos=>{
   if(epoch!==gpsEpoch||!tracker.active)return;
   const c=pos.coords;if(![c.latitude,c.longitude,c.accuracy].every(Number.isFinite))return;
   lastFix={lat:c.latitude,lon:c.longitude,accuracy:c.accuracy,timestamp:pos.timestamp,altitude:c.altitude};
@@ -47,13 +57,8 @@ function watchGPS(){
   text('.gps-status span:last-child',c.accuracy>50?'精度を改善中':'取得済み');
   text('#gpsHelp',c.accuracy>50?'現在地は概算です。精度50m以内になると距離に加算します。':tracker.paused?'一時停止中です。再開を押すと距離計測を続けます。':r.reason||'GPSを取得しました。移動すると軌跡と距離を更新します。');
   drawLiveRoute();updateRun();
- },err=>{
-  if(epoch!==gpsEpoch)return;
-  text('.gps-status span:last-child',err.code===1?'許可が必要':'再取得待ち');
-  text('#gpsHelp',err.code===1?'端末とブラウザの位置情報を許可し、GPSを再取得してください。アプリ内ブラウザの場合はSafariまたはChromeで開いてください。':err.code===3?'GPS取得がタイムアウトしました。屋外でGPSを再取得してください。':'現在地を取得できません。端末の位置情報をオンにして再取得してください。');
-  // A temporary GPS failure must not silently pause the running session.
- },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
- timer=setInterval(updateRun,1000);
+ },onError,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+ }catch(err){onError(err);}
 }
 function drawLiveRoute(){
  const points=tracker.points.length?tracker.points:lastFix?[lastFix]:[];
@@ -62,7 +67,7 @@ function drawLiveRoute(){
   if(lastFix){let label=$('.coordinates',el);if(!label){label=document.createElement('span');label.className='coordinates';el.append(label)}label.textContent=`${lastFix.lat.toFixed(5)}, ${lastFix.lon.toFixed(5)} · ±${Math.round(lastFix.accuracy)}m`;}
  }
 }
-async function startRun(){if(tracker.active){navigate('run');return;}if(saveError)throw Error('前の記録を保存してから開始してください。');if(!window.isSecureContext||!navigator.geolocation)throw Error('GPS計測にはHTTPSと位置情報対応ブラウザが必要です。');tracker.start();lastFix=null;$$('.coordinates').forEach(e=>e.remove());latest=null;navigate('run');drawRoute($('#runMapCard'),[]);watchGPS();await lock();updateRun();}
+async function startRun(){if(tracker.active){navigate('run');return;}if(saveError)throw Error('前の記録を保存してから開始してください。');tracker.start();lastFix=null;$$('.coordinates').forEach(e=>e.remove());latest=null;navigate('run');drawRoute($('#runMapCard'),[]);updateRun();watchGPS();void lock();}
 function updateRun(){const km=tracker.distance/1000*factor(),sec=tracker.seconds();text('#runDistance',km.toFixed(2));text('.run-distance .unit',unit());text('#runTime',time(sec));text('#runPace',pace(sec,km));text('#runSpeed',sec?(km/(sec/3600)).toFixed(1):'0.0');text('.run-stat:nth-child(2) span',`ペース /${unit()}`);text('.run-stat:nth-child(3) span',`平均速度 ${unit()}/h`);text('#runStatusChip',!tracker.active?'STARTで計測開始':tracker.paused?'一時停止中':'ランニング中…');text('#smallPauseButton span:last-child',tracker.paused?'再開':'一時停止');$('#mainRunUse').setAttribute('href',!tracker.active||tracker.paused?'#i-play':'#i-pause');$('#mainRunButton').setAttribute('aria-label',!tracker.active?'開始':tracker.paused?'再開':'一時停止');$('#smallPauseButton').disabled=!tracker.active;$('#finishRunButton').disabled=!tracker.active;}
 async function pauseRun(){if(!tracker.active)return startRun();if(tracker.paused){tracker.resume();if(watch!==null)navigator.geolocation.clearWatch(watch);clearInterval(timer);watchGPS();await lock();}else{tracker.pause();wake?.release();wake=null;}updateRun();}
 async function finishRun(){if(!tracker.active)return;close();latest=tracker.finish();stopWatch();saveError=true;renderResult();navigate('result');await persistResult();}

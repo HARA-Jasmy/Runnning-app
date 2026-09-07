@@ -25,3 +25,22 @@ test('English translations cover GPS errors and campaign and switch back to Japa
  assert.equal(vm.runInContext("translate('GPSを再取得')",sandbox),'Retry GPS');
  assert.equal(vm.runInContext("language='ja';translate('GPSを再取得')",sandbox),'GPSを再取得');
 });
+
+for(const mode of ['unsupported','insecure','security-error','permission-denied','timeout']){
+ test(`START opens the run screen and keeps controls/timer active with ${mode}`,async()=>{
+  const tracker=new RunTracker();let currentScreen='home',ticks=0;const texts={};
+  const geo={clearWatch(){},watchPosition(ok,error){
+   assert.equal(currentScreen,'run','screen must be shown before requesting GPS');
+   if(mode==='security-error')throw Object.assign(Error('Blocked'),{name:'SecurityError'});
+   error({code:mode==='timeout'?3:1});return 1;
+  }};
+  const sandbox={tracker,navigator:mode==='unsupported'?{}:{geolocation:geo},window:{isSecureContext:mode!=='insecure'},watch:null,timer:null,saveError:false,latest:null,
+   text:(k,v)=>texts[k]=v,clearInterval(){},setInterval(fn){ticks++;return 1},updateRun(){},navigate:s=>currentScreen=s,
+   $$:()=>[],$:()=>({}),drawRoute(){},lock:()=>new Promise(()=>{})};
+  vm.createContext(sandbox);
+  const startSource=app.slice(app.indexOf('async function startRun()'),app.indexOf('function updateRun()'));
+  vm.runInContext(gpsSource+'\n'+startSource,sandbox);
+  await vm.runInContext('startRun()',sandbox);
+  assert.equal(currentScreen,'run');assert.equal(tracker.active,true);assert.equal(tracker.paused,false);assert.equal(tracker.distance,0);assert.equal(ticks,1);assert.ok(texts['#gpsHelp']);
+ });
+}
