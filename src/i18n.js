@@ -48,3 +48,5 @@ export function initLanguage(onChange){
  observer=new MutationObserver(refresh);refresh();
  selects.forEach(select=>select.addEventListener('change',()=>{language=select.value==='en'?'en':'ja';selects.forEach(other=>other.value=language);try{localStorage.setItem('jasmy-language',language)}catch{}onChange();refresh();}));
 }
+
+Object.assign(en,{"メールアドレスでログイン":"Sign in with email","メールアドレス":"Email address","パスワードは不要です。メールに届く認証リンクからログインできます。初めての方も同じ手順で登録できます。":"No password needed. Open the sign-in link sent to your email. New users can register the same way.","メールアドレスでログインして、":"Sign in with your email","あなたの記録を管理しましょう。":"to manage your activity records."});

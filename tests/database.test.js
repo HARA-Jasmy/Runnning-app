@@ -3,6 +3,7 @@ test('schema enforces ownership, server-only verification, opt-in ranking and on
  const db=new PGlite();try{
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;create function auth.role() returns text language sql as $$select current_setting('request.jwt.claim.role',true)$$;grant usage on schema auth to authenticated;grant execute on function auth.uid(),auth.role() to authenticated;`);
  await db.exec(await readFile('supabase/migrations/202609070001_initial.sql','utf8'));
+ await db.exec(await readFile('docs/team-records.sql','utf8'));
  const a='00000000-0000-0000-0000-000000000001',b='00000000-0000-0000-0000-000000000002';
  await db.query('insert into auth.users values($1),($2)',[a,b]);
  const login=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claim.role','authenticated',false)",[id]);await db.exec('set role authenticated')};
@@ -11,8 +12,9 @@ test('schema enforces ownership, server-only verification, opt-in ranking and on
  await db.query("select public.join_team('JASMY RUNNERS')");
  const run='10000000-0000-0000-0000-000000000001';
  await db.query("insert into public.runs(id,user_id,started_at,duration_seconds,distance_m) values($1,$2,now(),900,3000)",[run,a]);
+ const pendingTeam=(await db.query('select public.get_my_team() as t')).rows[0].t;assert.equal(Number(pendingTeam.recorded_distance_km),3);assert.equal(Number(pendingTeam.distance_km),0);assert.equal(Number(pendingTeam.members[0].recorded_distance_km),3);
  await assert.rejects(db.query("update public.runs set verification_status='verified' where id=$1",[run]),/server managed/);
- await login(b);assert.equal((await db.query('select * from public.runs')).rows.length,0);assert.equal((await db.query('select * from public.profiles')).rows.length,0);
+ await login(b);assert.equal((await db.query('select public.get_my_team() as t')).rows[0].t,null);assert.equal((await db.query('select * from public.runs')).rows.length,0);assert.equal((await db.query('select * from public.profiles')).rows.length,0);
  await assert.rejects(db.query("insert into public.runs(id,user_id,started_at,duration_seconds,distance_m) values(gen_random_uuid(),$1,now(),900,3000)",[a]),/row-level security/);
  await assert.rejects(db.query("insert into public.challenge_entries values(gen_random_uuid(),$1,current_date)",[b]),/permission denied/);
  await assert.rejects(db.query("select * from public.teams"),/permission denied/);
