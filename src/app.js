@@ -21,7 +21,6 @@ function modal(title,body){previousFocus=document.activeElement;text('#sheetCont
 function close(){if(saving)return;$('#sheetOverlay').classList.remove('show');$('#sheetOverlay').setAttribute('aria-hidden','true');$$('.screen').forEach(e=>e.inert=!e.classList.contains('active'));$('#bottomNav').inert=false;previousFocus?.focus();}
 const note=s=>`<p class="sheet-description">${esc(s)}</p>`;
 function field(label,id,value=''){return `<label for="${id}">${esc(label)}</label><input id="${id}" type="text" value="${esc(value)}" required maxlength="40">`;}
-async function signInGoogle(){if(!data.supabase){modal('クラウド接続の準備中',note('Googleログインはまだ設定されていません。「この端末だけに保存して使う」から計測を始められます。'));return;}try{await data.signInWithGoogle();}catch(err){toast(err.message);}}
 async function loadApp(){const result=await data.load();profile=result.profile;runs=result.runs;ready=true;latest=runs[0]||null;await refreshHealth();await refreshTeam();renderSummary();}
 // Apple Watch (via Duffy) totals are informational only; they never touch runs,
 // verification, rankings, team distance or challenge entries.
@@ -117,7 +116,7 @@ function download(name,contents,type='application/json'){const url=URL.createObj
 function shareResult(){if(!latest)return;const c=document.createElement('canvas');c.width=1080;c.height=1080;const x=c.getContext('2d');x.fillStyle='#fff8f2';x.fillRect(0,0,1080,1080);x.fillStyle='#111827';x.font='bold 44px sans-serif';x.fillText('Jasmy Run',80,130);x.font='bold 140px sans-serif';x.fillText(`${distance(latest.distance_m)} ${unit()}`,80,440);x.font='36px sans-serif';x.fillText(`${time(latest.duration_seconds)} · ${pace(latest.duration_seconds,latest.distance_m/1000*factor())}/${unit()}`,80,550);x.fillStyle='#ed8125';x.font='bold 42px sans-serif';x.fillText('#RunWithJasmy',80,950);c.toBlob(b=>{if(b)download('jasmy-run-share.png',b,'image/png');});}
 const informational={
  'prize-claim':['賞品の受取について','当選者はニックネームで発表します。賞品の受取には、PDLによるマイナンバーカード認証が必要です。現在、認証サービスとの接続を準備しています。受取手続きの開始後に、このページでご案内します。'],
- 'consent':['Jasmy PDL連携は準備中','PDLの認証先とAPI接続はまだ設定されていません。PDLへデータは送信されません。Googleログイン、または端末保存をご利用ください。'],
+ 'consent':['Jasmy PDL連携は準備中','PDLの認証先とAPI接続はまだ設定されていません。PDLへデータは送信されません。メールアドレスでログインしてください。'],
  'pdl-data':['Your Data. Your Control.','PDLへの接続は準備中です。端末保存モードではこのブラウザ内に保存します。クラウドモードではログインした本人の走行記録を保存します。'],
  'access-log':['データのアクセス状況','PDLのアクセス監査ログは未接続です。この画面では第三者によるアクセス履歴の確認はまだできません。'],
  'run-settings':['GPS計測について','高精度GPSを利用します。画面を開いたまま計測してください。画面ロックやバックグラウンドでの継続計測は保証されません。位置精度が50mを超える点や30秒を超える取得間隔は距離に加算しません。'],
@@ -156,9 +155,18 @@ async function sheet(kind){if(saveError&&kind==='history'){toast('未保存の�
 }
 function tab(group,prefix,value){$$(`${group} button`).forEach(b=>b.classList.toggle('active',Object.values(b.dataset).includes(value)));$$(`.${prefix}-panel`).forEach(p=>p.classList.toggle('active',p.id===`${prefix}-${value}`));}
 async function invite(){if(!team)return;const u=new URL(location.origin);u.searchParams.set('team',team.name);try{await navigator.clipboard.writeText(u.href);toast('招待リンクをコピーしました。')}catch{modal('招待リンク',`<input readonly aria-label="招待リンク" value="${esc(u.href)}">`);}}
-async function action(a){if(a==='close-sheet')close();else if(a==='google')await signInGoogle();else if(a==='guest'){modal('この端末に保存して使う',note('走行記録と位置の軌跡を、このブラウザに保存します。ブラウザのデータ削除で記録も消えます。PDLやクラウドには送信されません。')+'<button class="primary-btn" id="enterGuest">端末保存で始める</button>');$('#enterGuest').onclick=safe(async()=>{await data.enterGuest();await loadApp();close();navigate('home')});}else if(a==='open-consent')sheet('consent');else if(a==='open-settings'){navigate('mypage');tab('#mypageTabs','mypage','settings');}else if(a==='open-full-map'){const points=screen==='result'?latest?.points:tracker.points;drawRoute($('.full-map-body'),points);$('#fullMap').classList.add('show');if(screen==='run')drawLiveRoute();}else if(a==='close-full-map')$('#fullMap').classList.remove('show');else if(a==='refresh-team')await renderTeam();else if(a==='invite')await invite();}
+async function action(a){if(a==='close-sheet')close();else if(a==='open-consent')sheet('consent');else if(a==='open-settings'){navigate('mypage');tab('#mypageTabs','mypage','settings');}else if(a==='open-full-map'){const points=screen==='result'?latest?.points:tracker.points;drawRoute($('.full-map-body'),points);$('#fullMap').classList.add('show');if(screen==='run')drawLiveRoute();}else if(a==='close-full-map')$('#fullMap').classList.remove('show');else if(a==='refresh-team')await renderTeam();else if(a==='invite')await invite();}
 document.addEventListener('click',safe(async e=>{const target=e.target.closest('[data-action],[data-sheet],[data-go],[data-nav-go],[data-toast],[data-run-id]');if(!target||target.disabled)return;if(target.dataset.action)return action(target.dataset.action);if(target.dataset.sheet)return sheet(target.dataset.sheet);if(target.dataset.runId){latest=runs.find(r=>r.id===target.dataset.runId);close();renderResult();navigate('result');return;}if(target.dataset.go)return navigate(target.dataset.go);if(target.dataset.navGo)return target.dataset.navGo==='run'&&!tracker.active?startRun():navigate(target.dataset.navGo);if(target.dataset.toast)return toast(target.dataset.toast);}));
 $('#sheetOverlay').onclick=e=>{if(e.target===$('#sheetOverlay'))close()};
+let emailRetryAt=0;
+$('#emailLoginForm').onsubmit=async e=>{
+ e.preventDefault();if(!$('#emailLoginForm').reportValidity())return;
+ if(Date.now()<emailRetryAt){text('#emailLoginStatus','再送する場合は60秒ほどお待ちください。');return;}
+ const button=$('#emailLoginButton');button.disabled=true;text('#emailLoginStatus','認証メールを送信しています…');
+ try{await data.signInWithEmail($('#loginEmail').value);emailRetryAt=Date.now()+60000;text('#emailLoginStatus','認証メールを送信しました。受信した最新のリンクを開いてログインしてください。届かない場合は迷惑メールフォルダーもご確認ください。');}
+ catch(error){text('#emailLoginStatus',error.status===429?'送信回数の上限に達しました。時間をおいて再試行してください。':'認証メールを送信できませんでした。メールアドレスを確認し、時間をおいて再試行してください。');}
+ finally{button.disabled=false;}
+};
 $('#homeStartButton').onclick=safe(startRun);$('#resultStartAgain').onclick=safe(startRun);$('#mainRunButton').onclick=safe(pauseRun);$('#screenLockButton').onclick=()=>{const overlay=$('#runLockOverlay');overlay.hidden=false;$('#screen-run .screen-scroll').inert=true;$('#bottomNav').inert=true;$('#unlockRun').focus();};$('#unlockRun').onclick=()=>{if($('#unlockRun').dataset.confirm!=='yes'){$('#unlockRun').dataset.confirm='yes';text('#unlockRun','もう一度押して解除');setTimeout(()=>{delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');},3000);return;}$('#runLockOverlay').hidden=true;$('#screen-run .screen-scroll').inert=false;$('#bottomNav').inert=false;delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');$('#screenLockButton').focus();};$('#finishRunButton').onclick=safe(()=>sheet('finish-run'));$('#shareButton').onclick=()=>sheet('share');
 $('#exportDataRow').onclick=()=>{download('jasmy-run-data.json',JSON.stringify({exported_at:new Date().toISOString(),storage:data.isGuest()?'device':'cloud',profile,runs},null,2));toast('全走行記録をエクスポートしました。')};
 $('#logoutButton').onclick=safe(async()=>{if(tracker.active||saveError)throw Error('計測を終了し、記録を保存してからログアウトしてください。');await data.logout();ready=false;runs=[];latest=null;team=null;navigate('login')});
