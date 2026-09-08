@@ -1,4 +1,4 @@
--- Apple Watch (via the user's own "Duffy" app) step/distance sync.
+-- Apple Health (via an iPhone shortcut or native bridge) step/distance sync.
 -- Applies once on top of 202609070001_initial.sql. Health totals never affect
 -- verification, rankings, team distance or challenge entries: those still
 -- come only from public.runs via the existing guard_run/recompute_entries triggers.
@@ -16,7 +16,7 @@ create table public.health_daily_totals(
  day date not null,
  steps integer not null default 0 check(steps between 0 and 200000),
  distance_m integer not null default 0 check(distance_m between 0 and 500000),
- source text not null default 'duffy' check(source='duffy'),
+ source text not null default 'apple_health' check(source='apple_health'),
  updated_at timestamptz not null default now(),
  primary key(user_id,day)
 );
@@ -46,19 +46,30 @@ end $$;
 create function public.health_sync_status() returns jsonb language sql stable security definer set search_path='' as $$
  select jsonb_build_object('connected',exists(select 1 from public.health_sync_tokens where user_id=auth.uid()));
 $$;
--- Called by Duffy over HTTPS with only the opaque token, so it runs as anon.
+-- Called by the iPhone bridge over HTTPS with only the opaque token, so it runs as anon.
 -- The token is a 192-bit secret; treat it like a password. One row per user per day.
 create function public.sync_health(p_token text,p_day date,p_steps integer,p_distance_m integer) returns void language plpgsql security definer set search_path='' as $$
 declare uid uuid;begin
  if p_token is null or length(p_token)<20 then raise exception 'Invalid token';end if;
- if p_day is null or p_day>current_date or p_day<current_date-interval '90 days' then raise exception 'Invalid day';end if;
+ if p_day is null or p_day>current_date+1 or p_day<current_date-interval '90 days' then raise exception 'Invalid day';end if;
  select user_id into uid from public.health_sync_tokens where token_hash=encode(extensions.digest(p_token,'sha256'),'hex');
  if uid is null then raise exception 'Invalid token';end if;
  update public.health_sync_tokens set last_used_at=now() where user_id=uid;
- insert into public.health_daily_totals(user_id,day,steps,distance_m,source,updated_at) values(uid,p_day,greatest(0,coalesce(p_steps,0)),greatest(0,coalesce(p_distance_m,0)),'duffy',now())
+ insert into public.health_daily_totals(user_id,day,steps,distance_m,source,updated_at) values(uid,p_day,greatest(0,coalesce(p_steps,0)),greatest(0,coalesce(p_distance_m,0)),'apple_health',now())
  on conflict(user_id,day) do update set steps=excluded.steps,distance_m=excluded.distance_m,updated_at=now();
 end $$;
 revoke all on function public.rotate_health_sync_token(),public.revoke_health_sync_token(),public.health_sync_status(),public.sync_health(text,date,integer,integer) from public,anon,authenticated;
 grant execute on function public.rotate_health_sync_token(),public.revoke_health_sync_token(),public.health_sync_status() to authenticated;
 grant execute on function public.sync_health(text,date,integer,integer) to anon;
+create or replace function public.delete_my_app_data() returns void language plpgsql security definer set search_path='' as $$
+begin
+ if auth.uid() is null then raise exception 'Authentication required';end if;
+ delete from public.health_sync_tokens where user_id=auth.uid();
+ delete from public.health_daily_totals where user_id=auth.uid();
+ delete from public.challenge_participants where user_id=auth.uid();
+ delete from public.challenge_entries where user_id=auth.uid();
+ delete from public.runs where user_id=auth.uid();
+ delete from public.team_members where user_id=auth.uid();
+ delete from public.profiles where id=auth.uid();
+end $$;
 commit;

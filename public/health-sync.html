@@ -1,0 +1,12 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Apple Watchの同期設定 | Jasmy Run</title><style>body{font-family:system-ui,sans-serif;max-width:680px;margin:32px auto;padding:0 20px;color:#202934;line-height:1.9}h1{font-size:26px}h2{font-size:20px;margin-top:32px}a{color:#a9551c}li{margin:14px 0}code{overflow-wrap:anywhere;background:#fff5ea}aside{background:#fff5ea;border-radius:14px;padding:18px}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;border-bottom:1px solid #eee;padding:10px}</style>
+<a href="/">← Jasmy Runへ</a><h1>Apple Watchの歩数・距離を同期する</h1>
+<p>DuffyとJasmy Runで、Appleヘルスケアに記録された歩数・歩行＋走行距離を利用します。Duffyから直接送信するのではなく、iPhoneの「ショートカット」を使います。</p>
+<aside>このWebアプリだけではヘルスケアの読み取り許可を取得できません。以下は手動で作成するショートカットの設定手順です。iPhoneでの動作確認はまだ完了していません。走行ラップ・GPS軌跡はこの同期には含みません。</aside>
+<h2>1. 読み取るデータを選ぶ</h2><ol><li>Apple WatchとiPhoneが同期され、iPhoneの「ヘルスケア」に歩数と「歩行＋走行距離」が表示されることを確認します。</li><li>iPhoneの「ショートカット」で新規ショートカットを作成し、「Jasmy Runに同期」と名付けます。</li><li>ヘルスケアのサンプルを検索するアクションで「歩数」を選び、開始日時を今日の0:00から現在までに絞ります。データソースは使用するApple Watchだけに絞ってください。iPhoneとWatchのサンプルを単純に合算すると二重計上になります。</li><li>取得したサンプルの値を合計して「歩数」にします。同じ手順で「歩行＋走行距離」を取得し、メートルに変換して合計・整数に丸めます。距離はランニングだけではなく歩行を含みます。</li><li>データを読み取る許可を求められたら、対象の歩数・距離へのアクセスを許可します。読み取れない場合は送信を止め、既存の記録を0で上書きしないでください。</li></ol>
+<h2>2. 送信先を設定する</h2><ol><li>Jasmy RunにGoogleでログインし、「マイページ → Apple Watch連携」から連携コードを発行します。</li><li>現在の日付をカスタム形式 <code>yyyy-MM-dd</code>（端末のタイムゾーン）でフォーマットします。</li><li>「URLの内容を取得」アクションを追加します。URLと公開キーは連携画面の「送信先の設定値」からコピーします。方法をPOST、本文をJSONにします。</li></ol>
+<table><tr><th>項目</th><th>設定値</th></tr><tr><td>ヘッダー apikey</td><td>連携画面の公開キー</td></tr><tr><td>ヘッダー Content-Type</td><td>application/json</td></tr><tr><td>p_token（テキスト）</td><td>発行した連携コード</td></tr><tr><td>p_day（テキスト）</td><td>上でフォーマットした日付</td></tr><tr><td>p_steps（数値）</td><td>今日の歩数合計</td></tr><tr><td>p_distance_m（数値）</td><td>今日の歩行＋走行距離のメートル合計</td></tr></table>
+<p>コードはパスワードと同じように扱い、コード入りのショートカットは共有しないでください。再発行すると古いコードは無効になります。</p>
+<h2>3. 同期結果を確認する</h2><p>ショートカットを実行後、Jasmy Runの連携画面で「同期結果を更新」を押してください。同じ日付の再送は最新の合計値に置き換わり、加算されません。エラーが出た場合は成功扱いにせず、コード・日付・数値を確認します。</p>
+<p>まず手動同期を確認してください。自動化する場合は時刻などをきっかけとした個人用オートメーションから実行します。iOSの権限・ロック状態により実行できない場合があります。Duffyやヘルスケアと表示値が異なる場合は、データソースと集計期間を確認してください。</p>
+<p>同期値はホームに参考表示します。GPSの走行記録とは分けて保存し、ランキングや抽選口数に重複加算しません。PDL保存は接続仕様の確定後に対応します。</p>
+</html>

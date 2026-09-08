@@ -14,5 +14,6 @@ export async function renderAd(container,slot){
  if(!ad||!ad.headline){container.hidden=true;container.innerHTML='';return;}
  const cta=ad.cta?(/^https?:\/\//.test(ad.href||'')?`<a class="ad-cta" href="${esc(ad.href)}" target="_blank" rel="noopener noreferrer sponsored">${esc(ad.cta)}</a>`:`<button class="ad-cta" type="button" data-toast="広告の内容は表示サンプルです。">${esc(ad.cta)}</button>`):'';
  container.hidden=false;
- container.innerHTML=`<span class="ad-badge" aria-hidden="true">PR</span><div class="ad-copy"><span class="ad-sponsor">${esc(ad.sponsor||'スポンサー広告')}</span><b>${esc(ad.headline).replace(/\n/g,'<br>')}</b>${ad.body?`<p>${esc(ad.body)}</p>`:''}${cta}</div>`;
+ const visual=ad.image&&/^\/assets\/[\w.-]+$/.test(ad.image)?`<img class="ad-image" src="${esc(ad.image)}" alt="賞品・商品イメージ" loading="lazy">`:ad.icon==='shop'?'<span class="ad-shop" aria-hidden="true">🏬</span>':'';
+ container.innerHTML=`<div class="ad-label"><span class="ad-badge">PR</span> スポンサー広告</div><div class="ad-feature">${visual}<div class="ad-copy"><span class="ad-sponsor">${esc(ad.sponsor||'スポンサー広告')}</span><b>${esc(ad.headline).replace(/\n/g,'<br>')}</b></div></div>${ad.body?`<p class="ad-body">${esc(ad.body)}</p>`:''}${cta}`;
 }
