@@ -321,3 +321,17 @@ html[lang=en] .nav-label{font-size:10px}html[lang=en] .segmented button{white-sp
 .profile-copy>span{display:flex;align-items:center;gap:6px}.country-flag{width:24px;height:16px;object-fit:contain;border:1px solid #e7e7e7;border-radius:2px}.history-item{width:100%;text-align:left;gap:12px}.history-item>div:last-child{text-align:right}
 
 .login-actions label{font-size:13px;font-weight:700;color:#526078}.login-actions input{width:100%;box-sizing:border-box;height:50px;border:1px solid #efd7bf;border-radius:12px;padding:0 14px;font-size:16px;background:white}.email-help,#emailLoginStatus{font-size:12px;line-height:1.7;color:#65748a;margin:4px 0}.login-actions .login-primary{width:100%}#emailLoginStatus:empty{display:none}
+
+/* Let cards grow with Japanese copy and center the three run controls. */
+.home-mini{display:flex;flex-direction:column;min-width:0;gap:6px;height:auto}
+.home-mini .link{position:static;margin-top:auto;padding-top:14px;min-height:40px;flex-wrap:wrap}
+.home-mini .small,.team-mini-name{overflow-wrap:anywhere}
+.run-controls{grid-template-columns:minmax(0,1fr) 116px minmax(0,1fr);height:132px;justify-items:center;gap:0}
+.control-main{width:108px;height:108px;justify-self:center;padding:0;box-sizing:border-box}
+.control-main .icon{width:44px;height:44px}
+.control-side{width:100%;min-width:0;padding:8px 0;box-shadow:none}
+.sheet input[type=file]{height:auto;min-height:48px;padding:10px 12px;line-height:26px;box-sizing:border-box}
+.sheet input[type=file]::file-selector-button{margin:0 8px 0 0;padding:3px 8px;line-height:24px;vertical-align:middle;border:1px solid #dfc7b0;border-radius:6px;background:#fff7ef;color:#69482b}
+.demo-banner{position:absolute;top:0;left:0;right:0;z-index:90;min-height:30px;background:#fff0dc;color:#744b24;padding:7px 10px;font-size:11px;text-align:center}
+.demo-banner a{color:inherit;margin-left:12px;font-weight:700}
+.demo-mode .screen-scroll{top:32px}
