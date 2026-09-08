@@ -1,4 +1,5 @@
-import {requestEmailLink} from './email-auth.js';
+import {passwordLogin,passwordSignup,requestPasswordReset} from './email-auth.js';
+export const recovering=new URLSearchParams(location.hash.slice(1)).get('type')==='recovery';
 import {createClient} from '@supabase/supabase-js';
 const url=__SUPABASE_URL__,key=__SUPABASE_KEY__;
 export const supabase=url&&key?createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
@@ -12,7 +13,10 @@ function check(r){if(r.error)throw r.error;return r.data;}
 export const isGuest=()=>guest;
 export async function restore(){if(supabase){const s=check(await supabase.auth.getSession());user=s.session?.user||null;}return user;}
 export async function enterGuest(){guest=true;user=null;return load();}
-export async function signInWithEmail(email,signUp=false){return requestEmailLink(supabase,email,location.origin,{signUp});}
+export async function loginWithPassword(email,password){const result=await passwordLogin(supabase,email,password);user=result.user;guest=false;return result;}
+export async function registerWithPassword(email,password){const result=await passwordSignup(supabase,email,password);if(result.session){user=result.user;guest=false;}return result;}
+export async function resetPassword(email){return requestPasswordReset(supabase,email);}
+export async function setPassword(password){if(!supabase||!user)throw Error('ログインが必要です。');if(password.length<8)throw Error('パスワードは8文字以上にしてください。');check(await supabase.auth.updateUser({password}));}
 export async function logout(){if(supabase&&user)check(await supabase.auth.signOut());user=null;guest=false;}
 export async function load(){
  if(guest)return {profile:await local('profile')||blank(),runs:await local('runs')||[]};

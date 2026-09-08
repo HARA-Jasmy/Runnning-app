@@ -155,18 +155,37 @@ async function sheet(kind){if(saveError&&kind==='history'){toast('未保存の�
 }
 function tab(group,prefix,value){$$(`${group} button`).forEach(b=>b.classList.toggle('active',Object.values(b.dataset).includes(value)));$$(`.${prefix}-panel`).forEach(p=>p.classList.toggle('active',p.id===`${prefix}-${value}`));}
 async function invite(){if(!team)return;const u=new URL(location.origin);u.searchParams.set('team',team.name);try{await navigator.clipboard.writeText(u.href);toast('招待リンクをコピーしました。')}catch{modal('招待リンク',`<input readonly aria-label="招待リンク" value="${esc(u.href)}">`);}}
-async function action(a){if(a==='close-sheet')close();else if(a==='open-consent')sheet('consent');else if(a==='open-settings'){navigate('mypage');tab('#mypageTabs','mypage','settings');}else if(a==='open-full-map'){const points=screen==='result'?latest?.points:tracker.points;drawRoute($('.full-map-body'),points);$('#fullMap').classList.add('show');if(screen==='run')drawLiveRoute();}else if(a==='close-full-map')$('#fullMap').classList.remove('show');else if(a==='refresh-team')await renderTeam();else if(a==='invite')await invite();}
+async function action(a){if(a==='close-sheet')close();else if(a==='set-password')openPasswordSetup();else if(a==='open-consent')sheet('consent');else if(a==='open-settings'){navigate('mypage');tab('#mypageTabs','mypage','settings');}else if(a==='open-full-map'){const points=screen==='result'?latest?.points:tracker.points;drawRoute($('.full-map-body'),points);$('#fullMap').classList.add('show');if(screen==='run')drawLiveRoute();}else if(a==='close-full-map')$('#fullMap').classList.remove('show');else if(a==='refresh-team')await renderTeam();else if(a==='invite')await invite();}
 document.addEventListener('click',safe(async e=>{const target=e.target.closest('[data-action],[data-sheet],[data-go],[data-nav-go],[data-toast],[data-run-id]');if(!target||target.disabled)return;if(target.dataset.action)return action(target.dataset.action);if(target.dataset.sheet)return sheet(target.dataset.sheet);if(target.dataset.runId){latest=runs.find(r=>r.id===target.dataset.runId);close();renderResult();navigate('result');return;}if(target.dataset.go)return navigate(target.dataset.go);if(target.dataset.navGo)return target.dataset.navGo==='run'&&!tracker.active?startRun():navigate(target.dataset.navGo);if(target.dataset.toast)return toast(target.dataset.toast);}));
 $('#sheetOverlay').onclick=e=>{if(e.target===$('#sheetOverlay'))close()};
 let emailRetryAt=0;
-$('#emailLoginForm').onsubmit=async e=>{
- e.preventDefault();if(!$('#emailLoginForm').reportValidity())return;
- if(Date.now()<emailRetryAt){text('#emailLoginStatus','再送する場合は60秒ほどお待ちください。');return;}
- const signUp=e.submitter?.id==='emailSignupButton';const button=$('#emailLoginButton'),signupButton=$('#emailSignupButton');button.disabled=true;signupButton.disabled=true;text('#emailLoginStatus','認証メールを送信しています…');
- try{await data.signInWithEmail($('#loginEmail').value,signUp);emailRetryAt=Date.now()+60000;text('#emailLoginStatus','認証メールを送信しました。受信した最新のリンクを開いてログインしてください。届かない場合は迷惑メールフォルダーもご確認ください。');}
- catch(error){text('#emailLoginStatus',error.status===429?'送信回数の上限に達しました。時間をおいて再試行してください。':error.code==='otp_disabled'?'初めての方は「新規登録」からお進みください。':'認証メールを送信できませんでした。メールアドレスを確認し、初めての方は「新規登録」からお進みください。');}
- finally{button.disabled=false;signupButton.disabled=false;}
-};
+function passwordFields(signup){return `<label for="authPassword">${signup?'パスワードを設定（8文字以上）':'パスワード'}</label><input id="authPassword" type="password" autocomplete="${signup?'new-password':'current-password'}" required ${signup?'minlength="8"':''}>${signup?'<label for="authPasswordConfirm">パスワード（確認）</label><input id="authPasswordConfirm" type="password" autocomplete="new-password" required minlength="8">':''}`;}
+function openPasswordForm(email,signUp){
+ modal(signUp?'新規登録':'PDLでログイン',`<p>${esc(email)}</p><form id="passwordForm">${passwordFields(signUp)}<button class="primary-btn" id="passwordSubmit">${signUp?'確認メールを送信して登録':'ログイン'}</button><p id="passwordStatus" role="status"></p></form>${signUp?'':'<button class="secondary-btn" id="resetPasswordButton">パスワードを忘れた・まだ設定していない方</button>'}`);
+ $('#authPassword').focus();
+ $('#passwordForm').onsubmit=async e=>{
+ e.preventDefault();if(!$('#passwordForm').reportValidity())return;
+ const password=$('#authPassword').value;
+ if(signUp&&password!==$('#authPasswordConfirm').value){text('#passwordStatus','パスワードが一致しません。');return;}
+ if(signUp&&Date.now()<emailRetryAt){text('#passwordStatus','メールの再送は時間をおいてお試しください。');return;}
+ const button=$('#passwordSubmit');button.disabled=true;text('#passwordStatus',signUp?'確認メールを送信しています…':'ログインしています…');
+ try{
+ const result=signUp?await data.registerWithPassword(email,password):await data.loginWithPassword(email,password);
+ if(signUp&&!result.session){emailRetryAt=Date.now()+60000;modal('メールをご確認ください',note('確認メールを送信しました。メール内のリンクを開くと登録が完了します。登録済みの場合はログインしてください。'));}
+ else{await loadApp();close();navigate('home');$('#loginEmail').value='';}
+ }catch(error){text('#passwordStatus',error.status===429?'送信・試行回数の上限に達しました。時間をおいて再試行してください。':signUp?'登録できませんでした。パスワードの条件やメールアドレスを確認し、時間をおいて再試行してください。':error.code==='email_not_confirmed'?'確認メールのリンクから登録を完了してください。':'ログインできませんでした。メールアドレスとパスワードを確認してください。');}
+ finally{button.disabled=false;}
+ };
+ if(!signUp)$('#resetPasswordButton').onclick=()=>{
+ modal('パスワードの再設定',note('再設定には確認メールが必要です。メールの送信上限中は、時間をおいてお試しください。既にログイン中の端末がある場合は、マイページの設定からパスワードを設定できます。')+'<button class="primary-btn" id="sendResetEmail">再設定メールを送信</button><p id="resetStatus" role="status"></p>');
+ $('#sendResetEmail').onclick=async()=>{const button=$('#sendResetEmail');if(Date.now()<emailRetryAt){text('#resetStatus','時間をおいて再試行してください。');return;}button.disabled=true;try{await data.resetPassword(email);emailRetryAt=Date.now()+60000;text('#resetStatus','登録されたメールアドレスに再設定の案内を送信しました。');}catch{ text('#resetStatus','メールを送信できませんでした。時間をおいて再試行してください。');}finally{button.disabled=false;}};
+ };
+}
+function openPasswordSetup(){
+ modal('パスワードを設定',`<form id="setPasswordForm">${passwordFields(true)}<button class="primary-btn" id="savePassword">保存</button><p id="setPasswordStatus" role="status"></p></form>`);
+ $('#setPasswordForm').onsubmit=async e=>{e.preventDefault();if(!$('#setPasswordForm').reportValidity())return;if($('#authPassword').value!==$('#authPasswordConfirm').value){text('#setPasswordStatus','パスワードが一致しません。');return;}const button=$('#savePassword');button.disabled=true;try{await data.setPassword($('#authPassword').value);close();toast('パスワードを設定しました。次回からパスワードでログインできます。');}catch{ text('#setPasswordStatus','保存できませんでした。パスワードの条件を確認し、再試行してください。');}finally{button.disabled=false;}};
+}
+$('#emailLoginForm').onsubmit=e=>{e.preventDefault();if(!$('#emailLoginForm').reportValidity())return;openPasswordForm($('#loginEmail').value.trim(),e.submitter?.id==='emailSignupButton');};
 $('#homeStartButton').onclick=safe(startRun);$('#resultStartAgain').onclick=safe(startRun);$('#mainRunButton').onclick=safe(pauseRun);$('#screenLockButton').onclick=()=>{const overlay=$('#runLockOverlay');overlay.hidden=false;$('#screen-run .screen-scroll').inert=true;$('#bottomNav').inert=true;$('#unlockRun').focus();};$('#unlockRun').onclick=()=>{if($('#unlockRun').dataset.confirm!=='yes'){$('#unlockRun').dataset.confirm='yes';text('#unlockRun','もう一度押して解除');setTimeout(()=>{delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');},3000);return;}$('#runLockOverlay').hidden=true;$('#screen-run .screen-scroll').inert=false;$('#bottomNav').inert=false;delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');$('#screenLockButton').focus();};$('#finishRunButton').onclick=safe(()=>sheet('finish-run'));$('#shareButton').onclick=()=>sheet('share');
 $('#exportDataRow').onclick=()=>{download('jasmy-run-data.json',JSON.stringify({exported_at:new Date().toISOString(),storage:data.isGuest()?'device':'cloud',profile,runs},null,2));toast('全走行記録をエクスポートしました。')};
 $('#logoutButton').onclick=safe(async()=>{if(tracker.active||saveError)throw Error('計測を終了し、記録を保存してからログアウトしてください。');await data.logout();ready=false;runs=[];latest=null;team=null;navigate('login')});
@@ -185,7 +204,7 @@ const inviteName=new URL(location.href).searchParams.get('team');if(inviteName){
 // Public ranking consent is separate from private profile storage.
 $('#mypage-consent').insertAdjacentHTML('beforeend','<div class="consent-card"><div class="consent-card-head"><div><h3>ランキング公開</h3><p>ニックネーム、国・地域、認定距離を他のログイン利用者へ公開します。位置の軌跡は公開しません。</p></div><button class="switch" id="rankingConsent" role="switch" aria-checked="false" aria-label="ランキング公開"></button></div></div>');
 $('#rankingConsent').onclick=safe(async()=>{const next={...profile,consents:{...profile.consents,ranking:!profile.consents.ranking}};await data.saveProfile(next);profile=next;$('#rankingConsent').classList.toggle('on',!!profile.consents.ranking);$('#rankingConsent').setAttribute('aria-checked',!!profile.consents.ranking);toast('ランキング公開設定を保存しました。')});
-safe(async()=>{navigate('login');if(await data.restore()){await loadApp();navigate('home');}if(ready){$('#rankingConsent').classList.toggle('on',!!profile.consents.ranking);$('#rankingConsent').setAttribute('aria-checked',!!profile.consents.ranking);}updateRun();})();
+safe(async()=>{navigate('login');if(await data.restore()){await loadApp();navigate('home');if(data.recovering)openPasswordSetup();}if(ready){$('#rankingConsent').classList.toggle('on',!!profile.consents.ranking);$('#rankingConsent').setAttribute('aria-checked',!!profile.consents.ranking);}updateRun();})();
 
 $('#retryGPS').onclick=$('#locateGPS').onclick=safe(()=>{if(tracker.active){if(tracker.paused){toast('再開するとGPSを取得します。');return;}watchGPS();}else openLocation();});
 $('#requestLocation').onclick=requestLocation;
