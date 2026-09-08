@@ -14,7 +14,11 @@ export const isGuest=()=>guest;
 export async function restore(){if(supabase){const s=check(await supabase.auth.getSession());user=s.session?.user||null;}return user;}
 export async function enterGuest(){guest=true;user=null;return load();}
 export async function loginWithPassword(email,password){const result=await passwordLogin(supabase,email,password);user=result.user;guest=false;return result;}
-export async function registerWithPassword(email,password){const result=await passwordSignup(supabase,email,password);if(result.session){user=result.user;guest=false;}return result;}
+export async function registerWithPassword(email,password){return passwordSignup(supabase,email,password,async()=>{
+ const response=await fetch(`${url}/auth/v1/settings`,{headers:{apikey:key},cache:'no-store'});
+ if(!response.ok)throw Object.assign(Error('メール確認の設定を確認できません。時間をおいて再試行してください。'),{code:'confirmation_configuration'});
+ return response.json();
+});}
 export async function resetPassword(email){return requestPasswordReset(supabase,email);}
 export async function setPassword(password){if(!supabase||!user)throw Error('ログインが必要です。');if(password.length<8)throw Error('パスワードは8文字以上にしてください。');check(await supabase.auth.updateUser({password}));}
 export async function logout(){if(supabase&&user)check(await supabase.auth.signOut());user=null;guest=false;}

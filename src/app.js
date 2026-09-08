@@ -1,3 +1,4 @@
+import {SIGNUP_NOTICE,signupErrorMessage} from './email-auth.js';
 import {GPSPoller} from './gps-poller.js';
 import {initLanguage,locale,translate} from './i18n.js';
 import {resizeAvatar} from './avatar.js';
@@ -151,14 +152,14 @@ function openPasswordForm(email,signUp){
  const button=$('#passwordSubmit');button.disabled=true;text('#passwordStatus',signUp?'確認メールを送信しています…':'ログインしています…');
  try{
  const result=signUp?await data.registerWithPassword(email,password):await data.loginWithPassword(email,password);
- if(signUp&&!result.session){emailRetryAt=Date.now()+60000;modal('メールをご確認ください',note('確認メールを送信しました。メール内のリンクを開くと登録が完了します。登録済みの場合はログインしてください。'));}
+ if(signUp){emailRetryAt=Date.now()+60000;modal('登録リクエストの受付',note(SIGNUP_NOTICE)+'<button class="primary-btn" id="signupToLogin">ログイン・パスワード再設定へ</button>');$('#signupToLogin').onclick=()=>openPasswordForm(email,false);}
  else{await loadApp();close();navigate('home');$('#loginEmail').value='';}
- }catch(error){text('#passwordStatus',error.status===429?'送信・試行回数の上限に達しました。時間をおいて再試行してください。':signUp?'登録できませんでした。パスワードの条件やメールアドレスを確認し、時間をおいて再試行してください。':error.code==='email_not_confirmed'?'確認メールのリンクから登録を完了してください。':'ログインできませんでした。メールアドレスとパスワードを確認してください。');}
+ }catch(error){text('#passwordStatus',signUp?signupErrorMessage(error):error.status===429?'試行回数の上限に達しました。時間をおいて再試行してください。':error.code==='email_not_confirmed'?'確認メールのリンクから登録を完了してください。':'ログインできませんでした。メールアドレスとパスワードを確認してください。');}
  finally{button.disabled=false;}
  };
  if(!signUp)$('#resetPasswordButton').onclick=()=>{
  modal('パスワードの再設定',note('再設定には確認メールが必要です。メールの送信上限中は、時間をおいてお試しください。既にログイン中の端末がある場合は、マイページの設定からパスワードを設定できます。')+'<button class="primary-btn" id="sendResetEmail">再設定メールを送信</button><p id="resetStatus" role="status"></p>');
- $('#sendResetEmail').onclick=async()=>{const button=$('#sendResetEmail');if(Date.now()<emailRetryAt){text('#resetStatus','時間をおいて再試行してください。');return;}button.disabled=true;try{await data.resetPassword(email);emailRetryAt=Date.now()+60000;text('#resetStatus','登録されたメールアドレスに再設定の案内を送信しました。');}catch{ text('#resetStatus','メールを送信できませんでした。時間をおいて再試行してください。');}finally{button.disabled=false;}};
+ $('#sendResetEmail').onclick=async()=>{const button=$('#sendResetEmail');if(Date.now()<emailRetryAt){text('#resetStatus','時間をおいて再試行してください。');return;}button.disabled=true;try{await data.resetPassword(email);emailRetryAt=Date.now()+60000;text('#resetStatus','再設定リクエストを受け付けました。登録済みの場合は届いたメールをご確認ください。この画面ではメールの到着は確認できません。');}catch{ text('#resetStatus','メールを送信できませんでした。時間をおいて再試行してください。');}finally{button.disabled=false;}};
  };
 }
 function openPasswordSetup(){

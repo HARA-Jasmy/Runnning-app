@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {passwordLogin,passwordSignup,requestPasswordReset,AUTH_REDIRECT_URL} from '../src/email-auth.js';
+import {passwordLogin,passwordSignup,requestPasswordReset,AUTH_REDIRECT_URL,SIGNUP_NOTICE,signupErrorMessage} from '../src/email-auth.js';
 test('normal login calls only password auth and never sends email',async()=>{
  let payload;const client={auth:{signInWithPassword:async p=>{payload=p;return {data:{user:{id:'test'},session:{}},error:null}},signInWithOtp:()=>assert.fail('No email on login'),signUp:()=>assert.fail('No sign-up on login')}};
  const data=await passwordLogin(client,' runner@example.com ','test-password');assert.equal(data.user.id,'test');assert.deepEqual(payload,{email:'runner@example.com',password:'test-password'});
 });
 test('sign-up sets password and canonical confirmation redirect',async()=>{
- let payload;await passwordSignup({auth:{signUp:async p=>{payload=p;return {data:{session:null},error:null}}}},'runner@example.com','test-password');
+ let payload;await passwordSignup({auth:{signUp:async p=>{payload=p;return {data:{session:null},error:null}}}},'runner@example.com','test-password',async()=>({mailer_autoconfirm:false}));
  assert.deepEqual(payload,{email:'runner@example.com',password:'test-password',options:{emailRedirectTo:AUTH_REDIRECT_URL}});assert.equal(AUTH_REDIRECT_URL,'https://jasmy-running-app.vercel.app/');
 });
 test('invalid input and upstream errors do not silently sign in',async()=>{
@@ -16,4 +16,20 @@ test('invalid input and upstream errors do not silently sign in',async()=>{
 });
 test('explicit password reset returns to canonical app',async()=>{
  let args;await requestPasswordReset({auth:{resetPasswordForEmail:async(...a)=>{args=a;return {error:null}}}},'runner@example.com');assert.deepEqual(args,['runner@example.com',{redirectTo:AUTH_REDIRECT_URL}]);
+});
+
+test('signup blocks disabled or unknown email confirmation before account creation',async()=>{
+ let calls=0;const client={auth:{signUp:async()=>{calls++;}}};
+ for(const settings of [{mailer_autoconfirm:true},{}])await assert.rejects(passwordSignup(client,'runner@example.com','test-password',async()=>settings),e=>e.code==='confirmation_configuration');
+ assert.equal(calls,0);
+});
+test('unexpected auto-login session is signed out and never accepted as confirmed signup',async()=>{
+ let scope;const client={auth:{signUp:async()=>({data:{session:{},user:{}},error:null}),signOut:async p=>{scope=p.scope;}}};
+ await assert.rejects(passwordSignup(client,'runner@example.com','test-password',async()=>({mailer_autoconfirm:false})),e=>e.code==='confirmation_configuration');assert.equal(scope,'local');
+});
+test('duplicate signup cannot be presented as email delivery or verification',()=>{
+ assert.doesNotMatch(SIGNUP_NOTICE,/送信しました|認証が完了しました/);
+ assert.match(SIGNUP_NOTICE,/登録済み/);assert.match(SIGNUP_NOTICE,/到着や認証完了を確認できません/);
+ assert.match(signupErrorMessage({status:429}),/送信を完了できていません/);
+ assert.match(signupErrorMessage({code:'email_address_not_authorized'}),/配信設定/);
 });
