@@ -1,6 +1,8 @@
 // Translate text nodes without replacing elements or their event handlers.
 // Keep source text per node so switching back also restores dynamic content.
 const en={
+'ラップ一覧':'Lap list','1kmごとのラップ':'Laps per kilometre','直近1kmのラップ':'Last 1 km lap','ラップタイム':'Lap time','1km走るごとに、自動でラップタイムを記録します。':'Lap times are recorded automatically every kilometre.',
+'同期結果を更新':'Refresh sync results','送信先の設定値':'Sync settings','未設定':'Not configured','同期データあり':'Data received','コード発行済み・同期未確認':'Code issued · awaiting sync',
 'GPS利用不可':'GPS unavailable',
 'この環境では位置情報を利用できません。時間の計測は続けられます。距離を計測するにはHTTPSのアプリURLをSafariまたはChromeで開いてください。':'Location is unavailable in this environment. You can still track time. To measure distance, open the HTTPS app URL in Safari or Chrome.',
 '走るほど、':'Every run,','自分らしい未来へ。':'a future of your own.','自分のペースで、日々の走りを記録。':'Track your runs at your own pace.','PDL連携は準備中です。':'PDL integration is coming soon.','まずは端末保存でお使いいただけます。':'Start by saving runs on this device.',
@@ -19,6 +21,7 @@ Object.assign(en,{"Googleでログイン": "Sign in with Google", "クラウド�
 let language='ja';try{language=localStorage.getItem('jasmy-language')==='en'?'en':'ja'}catch{}
 export const locale=()=>language==='en'?'en-US':'ja-JP';
 export function translate(value){
+ if(language==='en'&&/^\d+ km目のラップ$/.test(value))return value.replace(/^(\d+) km目のラップ$/, 'Lap $1 · 1 km');
  if(language!=='en')return value;
  if(en[value])return en[value];
  return value.replace(/^位置精度 ±(\d+)m$/,'Accuracy ±$1 m').replace(/^総距離 (km|mi)$/,'Total distance $1').replace(/^平均ペース \/(km|mi)$/,'Avg. pace /$1').replace(/^ペース \/(km|mi)$/,'Pace /$1').replace(/^平均速度 (km|mi)\/h$/,'Avg. speed $1/h').replace(/^(.*?)さん ☀️$/,'$1 ☀️').replace(/^(.*?)・未認定$/,'$1 · Unverified').replace(/^(.*?) 認定済み$/,'$1 Verified').replace(/^累計認定距離 /,'Total verified distance ').replace(/^認定距離 (.*?) km以上の日が対象です。1日1口。$/,'Days with at least $1 km verified qualify. One entry per day.');

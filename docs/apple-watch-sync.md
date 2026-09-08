@@ -1,50 +1,27 @@
-# Apple Watch（Duffy）連携の技術仕様
+# Apple Health / Apple Watch同期
 
-Apple Watchのデータは、Apple純正のHealthKitへ記録されます。このアプリはHealthKitへ直接接続しません。
-ユーザー自身が用意する自作アプリ／ショートカット「Duffy」がHealthKitから歩数・走行距離を読み取り、
-このアプリのSupabaseプロジェクトへHTTP POSTすることでデータを届けます。
+Duffyは市販のApple Watch歩数表示アプリです。Duffyにトークンを設定して外部サービスへPOSTできるという以前の説明は誤りでした。ブラウザからHealthKitは直接読めません。iPhoneのショートカットまたはHealthKit対応ネイティブアプリを橋渡しに使います。
 
-歩数・距離は**参考表示のみ**です。GPSによる実走行記録（`public.runs`）とは別テーブルに保存し、
-走行認定・ランキング・チーム距離・チャレンジのエントリー計算には一切使用しません。
+利用者向け手順: `public/health-sync.html`。手動でショートカットを作成する方式で、署名済みショートカットやネイティブアプリは未提供、iPhone実機での同期は未検証です。Apple Watchのみのサンプルに絞って重複合算を避けるため、ヘルスケアの複数ソース統合済み表示やDuffyと完全一致する保証はありません。
 
-## 認証の仕組み
+## 受信契約
 
-1. ログイン済みユーザーがマイページ「Apple Watch連携（Duffy）」から連携コードを発行する（`rpc/rotate_health_sync_token`）。
-2. コードは192ビットの乱数で、平文はこのときだけ画面に表示される。サーバーにはSHA-256ハッシュのみ保存する。
-3. Duffyはこのコードを保持し、送信のたびに`p_token`として送る。
-4. サーバー側の`sync_health`関数がハッシュを突き合わせ、一致したユーザーの`health_daily_totals`を更新する。
+`POST /rest/v1/rpc/sync_health` をSupabaseのURLに送信。ヘッダーは `apikey: <publishable key>` と `Content-Type: application/json`。
 
-コードはパスワードと同様の機密情報として扱うこと。漏えいした場合はマイページから再発行（無効化を兼ねる）できる。
-
-## エンドポイント
-
-```
-POST https://<project>.supabase.co/rest/v1/rpc/sync_health
-apikey: <公開のpublishable/anon key>
-Content-Type: application/json
-
-{
-  "p_token": "発行された連携コード",
-  "p_day": "2026-09-07",
-  "p_steps": 8421,
-  "p_distance_m": 6300
-}
+```json
+{"p_token":"発行時のみ表示するコード","p_day":"2026-09-08","p_steps":8421,"p_distance_m":6300}
 ```
 
-- `p_day` はローカル日付（`YYYY-MM-DD`）。未来日、および91日以上前の日付は拒否される。
-- `p_steps` は0〜200,000、`p_distance_m` は0〜500,000（メートル）の範囲外は保存時に丸められる。
-- 同じ`p_token`・`p_day`の組み合わせで再送すると、その日の値を上書きする（累積ではなく最新値）。
-- 失敗時はPostgRESTの標準エラー形式でHTTP 400番台を返す。トークンが不正な場合も理由は返さない。
+- p_day: 利用者のローカル日付。UTCより最大1日先を許容することで日本の午前も同期可能。過去90日まで。
+- p_steps: 0〜200000。p_distance_m: 0〜500000メートル。上限超過は拒否、負数とnullは既存関数の仕様で0に補正。送信側は欠測を0に変換せず送信を中止する。
+- 同一ユーザー・日付は上書き。ランニングだけでなく歩行を含む距離。GPS走行との合算は禁止。
+- ログイン中に `rotate_health_sync_token` で192-bitコードを発行。DBはSHA-256のみ保持。再発行・解除で旧コードを無効化。
+- コード所持者は健康集計を変更できる。共有・ログ出力しない。
+- public.health_daily_totalsはRLSで本人のみ読み取り可能。匿名はsync_healthのみ実行可能。sourceはapple_health。
+- ランキング・チーム・抽選は既存の認定runsのみ参照し、この参考集計は参照しない。
 
-## 適用が必要なマイグレーション
+本格的な自動同期は、HealthKitの認可とHKStatisticsCollectionQuery等による集計に対応したiOSアプリを実装し、実機で権限・重複排除・タイムゾーン・バックグラウンド実行を検証する必要があります。
 
-`supabase/migrations/202609072_health_sync.sql` を、既存のSupabaseプロジェクトのSQL Editorで一度実行する。
-`pgcrypto`拡張を有効化し、`health_sync_tokens`・`health_daily_totals`テーブルと、
-`rotate_health_sync_token` / `revoke_health_sync_token` / `health_sync_status` / `sync_health`の4つの関数を作成する。
+参考: https://apps.apple.com/ca/app/duffy-steps-complication/id1207581673 、 https://developer.apple.com/documentation/healthkit
 
-## Duffy側の実装メモ
-
-- HealthKitの`HKQuantityTypeIdentifierStepCount`・`HKQuantityTypeIdentifierDistanceWalkingRunning`を
-  当日分だけ集計し、上記のリクエストを送る運用を想定している。
-- 送信頻度に制限はないが、同日中は最新の送信内容で上書きされるため、1日数回で十分。
-- iPhoneの「ショートカット」アプリで「HealthKit変数を取得」→「Webリクエストを取得」の組み合わせでも実装できる。
+Security advisor: `sync_health`の匿名SECURITY DEFINER警告は、192-bitトークンで認証する明示的なAPIです。テーブル直接アクセスは禁止し、本人用トークン操作はauth.uid()で制限。https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable

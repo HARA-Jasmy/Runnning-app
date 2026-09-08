@@ -145,7 +145,7 @@
         <div class="run-stats">
           <div class="run-stat"><b id="runTime">30:24</b><span>時間</span></div>
           <div class="run-stat"><b id="runPace">5'48”</b><span>ペース /km</span></div>
-          <div class="run-stat"><b id="runSpeed">10.3</b><span>速度 km/h</span></div>
+          <div class="run-stat"><b id="runLap">—</b><span>直近1kmのラップ</span></div>
         </div>
         <div class="map-card" id="runMapCard">
           <svg class="map-svg" viewBox="0 0 360 217" aria-label="ランニング中の地図">
@@ -163,7 +163,7 @@
         </div>
         <div class="movement-banner" id="movementBanner"><svg class="icon icon-sm orange"><use href="#i-info"></use></svg><span>移動パターンを確認しています。記録は継続し、終了後にサーバーで認定距離を判定します。</span></div>
         <div class="run-controls">
-          <button class="control-side" id="smallPauseButton"><span class="round"><svg class="icon"><use href="#i-pause"></use></svg></span><span>一時停止</span></button>
+          <button class="control-side" id="lapListButton"><span class="round"><svg class="icon"><use href="#i-clock"></use></svg></span><span>ラップ一覧</span></button>
           <button class="control-main" id="mainRunButton" aria-label="一時停止"><svg class="icon"><use id="mainRunUse" href="#i-pause"></use></svg></button>
           <button class="control-side" id="finishRunButton"><span class="round"><svg class="icon"><use href="#i-stop"></use></svg></span><span>終了</span></button>
         </div>
@@ -190,7 +190,7 @@
           <button class="expand-map" data-action="open-full-map"><svg class="icon icon-sm"><use href="#i-expand"></use></svg></button>
         </div>
         <button class="verified-card" data-sheet="verification"><span class="verified-icon"><svg class="icon icon-xs"><use href="#i-check"></use></svg></span><span><b><span id="verifiedDistance">10.24</span> km・未認定</b><p>保存前・ランキングにはまだ反映されません。</p></span><svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
-        <div class="splits"><h3>スプリット</h3><div class="split-head"><span>KM</span><span>ペース</span><span>標高 (m)</span></div><div id="splitRows"></div></div>
+        <div class="splits"><h3>1kmごとのラップ</h3><div class="split-head"><span>KM</span><span>ラップタイム</span><span>標高 (m)</span></div><div id="splitRows"></div></div>
         <div class="card soft-card ad-card" id="adResult" hidden aria-label="スポンサー広告"></div>
         <div class="result-actions"><button class="secondary-btn" data-go="home">ホームへ</button><button class="primary-btn" id="resultStartAgain"><svg class="icon icon-sm"><use href="#i-run"></use></svg>もう一度走る</button></div>
       </div>

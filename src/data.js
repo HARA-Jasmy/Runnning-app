@@ -1,3 +1,4 @@
+import {dayKey} from './tracker.js';
 import {createClient} from '@supabase/supabase-js';
 const url=__SUPABASE_URL__,key=__SUPABASE_KEY__;
 export const supabase=url&&key?createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
@@ -33,10 +34,10 @@ export async function enroll(id){if(guest)throw Error('参加にはクラウド�
 
 export async function publishedWinners(){if(!supabase)return [];return check(await supabase.from('challenge_winners').select('id,nickname,published_at,challenge_month,challenge_title').order('published_at',{ascending:false}).limit(500));}
 
-// Apple Watch (via the user's own "Duffy" app) step/distance sync.
+// Apple Health step/distance sync via an iPhone bridge.
 // Tokens are opaque and shown once; only their hash lives server-side. Totals here
 // never reach rankings, team distance or challenge entries — those come from runs only.
 export async function healthSyncStatus(){if(guest||!user)return {connected:false};return check(await supabase.rpc('health_sync_status'));}
 export async function rotateHealthSyncToken(){if(guest||!user)throw Error('クラウドのログインが必要です。');return check(await supabase.rpc('rotate_health_sync_token'));}
 export async function revokeHealthSyncToken(){if(guest||!user)return;check(await supabase.rpc('revoke_health_sync_token'));}
-export async function healthToday(){if(guest||!user)return null;const day=new Date().toISOString().slice(0,10);return check(await supabase.from('health_daily_totals').select('steps,distance_m,updated_at').eq('day',day).maybeSingle());}
+export async function healthToday(){if(guest||!user)return null;const day=dayKey(new Date());return check(await supabase.from('health_daily_totals').select('steps,distance_m,updated_at').eq('day',day).maybeSingle());}
