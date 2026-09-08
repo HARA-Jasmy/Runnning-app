@@ -162,10 +162,10 @@ let emailRetryAt=0;
 $('#emailLoginForm').onsubmit=async e=>{
  e.preventDefault();if(!$('#emailLoginForm').reportValidity())return;
  if(Date.now()<emailRetryAt){text('#emailLoginStatus','再送する場合は60秒ほどお待ちください。');return;}
- const button=$('#emailLoginButton');button.disabled=true;text('#emailLoginStatus','認証メールを送信しています…');
- try{await data.signInWithEmail($('#loginEmail').value);emailRetryAt=Date.now()+60000;text('#emailLoginStatus','認証メールを送信しました。受信した最新のリンクを開いてログインしてください。届かない場合は迷惑メールフォルダーもご確認ください。');}
- catch(error){text('#emailLoginStatus',error.status===429?'送信回数の上限に達しました。時間をおいて再試行してください。':'認証メールを送信できませんでした。メールアドレスを確認し、時間をおいて再試行してください。');}
- finally{button.disabled=false;}
+ const signUp=e.submitter?.id==='emailSignupButton';const button=$('#emailLoginButton'),signupButton=$('#emailSignupButton');button.disabled=true;signupButton.disabled=true;text('#emailLoginStatus','認証メールを送信しています…');
+ try{await data.signInWithEmail($('#loginEmail').value,signUp);emailRetryAt=Date.now()+60000;text('#emailLoginStatus','認証メールを送信しました。受信した最新のリンクを開いてログインしてください。届かない場合は迷惑メールフォルダーもご確認ください。');}
+ catch(error){text('#emailLoginStatus',error.status===429?'送信回数の上限に達しました。時間をおいて再試行してください。':error.code==='otp_disabled'?'初めての方は「新規登録」からお進みください。':'認証メールを送信できませんでした。メールアドレスを確認し、初めての方は「新規登録」からお進みください。');}
+ finally{button.disabled=false;signupButton.disabled=false;}
 };
 $('#homeStartButton').onclick=safe(startRun);$('#resultStartAgain').onclick=safe(startRun);$('#mainRunButton').onclick=safe(pauseRun);$('#screenLockButton').onclick=()=>{const overlay=$('#runLockOverlay');overlay.hidden=false;$('#screen-run .screen-scroll').inert=true;$('#bottomNav').inert=true;$('#unlockRun').focus();};$('#unlockRun').onclick=()=>{if($('#unlockRun').dataset.confirm!=='yes'){$('#unlockRun').dataset.confirm='yes';text('#unlockRun','もう一度押して解除');setTimeout(()=>{delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');},3000);return;}$('#runLockOverlay').hidden=true;$('#screen-run .screen-scroll').inert=false;$('#bottomNav').inert=false;delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');$('#screenLockButton').focus();};$('#finishRunButton').onclick=safe(()=>sheet('finish-run'));$('#shareButton').onclick=()=>sheet('share');
 $('#exportDataRow').onclick=()=>{download('jasmy-run-data.json',JSON.stringify({exported_at:new Date().toISOString(),storage:data.isGuest()?'device':'cloud',profile,runs},null,2));toast('全走行記録をエクスポートしました。')};

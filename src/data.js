@@ -12,7 +12,7 @@ function check(r){if(r.error)throw r.error;return r.data;}
 export const isGuest=()=>guest;
 export async function restore(){if(supabase){const s=check(await supabase.auth.getSession());user=s.session?.user||null;}return user;}
 export async function enterGuest(){guest=true;user=null;return load();}
-export async function signInWithEmail(email){return requestEmailLink(supabase,email,location.origin);}
+export async function signInWithEmail(email,signUp=false){return requestEmailLink(supabase,email,location.origin,{signUp});}
 export async function logout(){if(supabase&&user)check(await supabase.auth.signOut());user=null;guest=false;}
 export async function load(){
  if(guest)return {profile:await local('profile')||blank(),runs:await local('runs')||[]};
