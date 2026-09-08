@@ -145,7 +145,7 @@
         <div class="run-stats">
           <div class="run-stat"><b id="runTime">30:24</b><span>時間</span></div>
           <div class="run-stat"><b id="runPace">5'48”</b><span>ペース /km</span></div>
-          <div class="run-stat"><b id="runSpeed">10.3</b><span>速度 km/h</span></div>
+          <div class="run-stat"><b id="runLap">—</b><span id="runLapLabel">直前の1 kmラップ</span></div>
         </div>
         <div class="map-card" id="runMapCard">
           <svg class="map-svg" viewBox="0 0 360 217" aria-label="ランニング中の地図">
@@ -161,9 +161,9 @@
           <div class="map-tools"><button class="map-tool" id="locateGPS" aria-label="GPSを再取得"><svg class="icon"><use href="#i-target"></use></svg></button><button class="map-tool" data-action="open-full-map"><svg class="icon"><use href="#i-map"></use></svg></button></div>
           <div class="run-chip" id="runStatusChip">ランニング中...</div>
         </div>
-        <div class="movement-banner" id="movementBanner"><svg class="icon icon-sm orange"><use href="#i-info"></use></svg><span>移動パターンを確認しています。記録は継続し、終了後にサーバーで認定距離を判定します。</span></div>
+        <details class="live-laps"><summary>1 kmごとのラップ</summary><div id="liveLapRows"></div></details><div class="movement-banner" id="movementBanner"><svg class="icon icon-sm orange"><use href="#i-info"></use></svg><span>移動パターンを確認しています。記録は継続し、終了後にサーバーで認定距離を判定します。</span></div>
         <div class="run-controls">
-          <button class="control-side" id="smallPauseButton"><span class="round"><svg class="icon"><use href="#i-pause"></use></svg></span><span>一時停止</span></button>
+          <button class="control-side" id="screenLockButton"><span class="round"><svg class="icon"><use href="#i-lock"></use></svg></span><span>画面ロック</span></button>
           <button class="control-main" id="mainRunButton" aria-label="一時停止"><svg class="icon"><use id="mainRunUse" href="#i-pause"></use></svg></button>
           <button class="control-side" id="finishRunButton"><span class="round"><svg class="icon"><use href="#i-stop"></use></svg></span><span>終了</span></button>
         </div>
@@ -171,6 +171,7 @@
     </div>
   </section>
 
+  <div id="runLockOverlay" hidden role="dialog" aria-modal="true" aria-label="画面ロック"><p>画面ロック中・計測は継続しています</p><button id="unlockRun" class="primary-btn">画面ロックを解除</button></div>
   <!-- 4. Result -->
   <section class="screen" id="screen-result" data-nav="run">
     <div class="screen-scroll">

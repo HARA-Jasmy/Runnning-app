@@ -11,13 +11,17 @@
     "headline": "走ったあとの、\nおいしいごほうび。",
     "body": "今夜はちょっと特別な海鮮ごはん。",
     "cta": "商品ラインナップを見る",
-    "href": "#"
+    "href": "#",
+    "image": "/assets/hokkaido-seafood.webp",
+    "imageAlt": "海鮮セットのイメージ"
   },
   "home-bottom": {
     "sponsor": "まちの食卓（サンプル）",
     "headline": "走る街で、\nお気に入りの一軒を。",
     "body": "地元の食材を味わえるお店をご紹介。ランニングのあとの寄り道に。",
     "cta": "地域のお店を見る",
-    "href": "#"
+    "href": "#",
+    "image": "/assets/local-shop.svg",
+    "imageAlt": "地域のお店のイメージ"
   }
 }

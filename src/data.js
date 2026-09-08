@@ -11,7 +11,7 @@ function check(r){if(r.error)throw r.error;return r.data;}
 export const isGuest=()=>guest;
 export async function restore(){if(supabase){const s=check(await supabase.auth.getSession());user=s.session?.user||null;}return user;}
 export async function enterGuest(){guest=true;user=null;return load();}
-export async function signInWithGoogle(){if(!supabase)throw Error('クラウド接続の設定が必要です。端末保存で利用できます。');check(await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}}));}
+export async function signInWithGoogle(){if(!supabase)throw Error('クラウド接続の設定が必要です。端末保存で利用できます。');const response=await fetch(`${url}/auth/v1/settings`,{headers:{apikey:key},signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('ログイン設定を確認できません。時間をおいて再試行してください。');const settings=await response.json();if(!settings.external?.google)throw Error('Googleログインは現在準備中です。端末保存で計測を始められます。');check(await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}}));}
 export async function logout(){if(supabase&&user)check(await supabase.auth.signOut());user=null;guest=false;}
 export async function load(){
  if(guest)return {profile:await local('profile')||blank(),runs:await local('runs')||[]};

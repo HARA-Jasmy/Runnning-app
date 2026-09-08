@@ -1,3 +1,4 @@
+import {GPSPoller} from './gps-poller.js';
 import {LocationRequest} from './location.js';
 import {initLanguage,locale,translate} from './i18n.js';
 import {resizeAvatar} from './avatar.js';
@@ -39,11 +40,11 @@ function drawRoute(container,points){if(!container)return;const svg=$('svg.map-s
  svg.innerHTML=`<rect width="350" height="230" fill="#f4f6f5"/>${paths.map(path=>`<polyline points="${path.join(' ')}" fill="none" stroke="#f49a42" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}${paths.length?(()=>{const p=paths.at(-1).at(-1).split(',');return `<circle cx="${p[0]}" cy="${p[1]}" r="6" fill="#f49a42" stroke="white" stroke-width="3"/>`})():''}`;
  let caption=$('.map-caption',container);if(!caption){caption=document.createElement('span');caption.className='map-caption';container.append(caption)}caption.textContent=valid.length>1?'GPS軌跡（背景地図なし）':valid.length?'現在地を取得しました。移動すると軌跡が表示されます。':'GPSを取得すると軌跡が表示されます';}
 async function lock(){try{wake=await navigator.wakeLock?.request('screen')}catch{}}
-function stopWatch(){gpsEpoch++;if(watch!==null)navigator.geolocation.clearWatch(watch);watch=null;clearInterval(timer);timer=null;wake?.release();wake=null;}
+function stopWatch(){gpsEpoch++;if(watch!==null)watch.stop();watch=null;clearInterval(timer);timer=null;wake?.release();wake=null;}
 let lastFix=null,gpsEpoch=0;
 function watchGPS(){
- if(watch!==null)navigator.geolocation.clearWatch(watch);
- clearInterval(timer);timer=setInterval(updateRun,1000);const epoch=++gpsEpoch;
+ if(watch!==null)watch.stop();
+ clearInterval(timer);timer=setInterval(updateRun,1000);const epoch=++gpsEpoch;if(tracker.paused)return;
  if(!navigator.geolocation||!window.isSecureContext){
   text('.gps-status span:last-child','GPS利用不可');
   text('#gpsHelp','この環境では位置情報を利用できません。時間の計測は続けられます。距離を計測するにはHTTPSのアプリURLをSafariまたはChromeで開いてください。');
@@ -56,7 +57,7 @@ function watchGPS(){
  };
 
  text('.gps-status span:last-child','取得中');text('#gpsHelp','位置情報の利用を許可してください。屋外では精度が改善します。');
- try {watch=navigator.geolocation.watchPosition(pos=>{
+ try {watch=new GPSPoller(navigator.geolocation);watch.start(pos=>{
   if(epoch!==gpsEpoch||!tracker.active)return;
   const c=pos.coords;if(![c.latitude,c.longitude,c.accuracy].every(Number.isFinite))return;
   lastFix={lat:c.latitude,lon:c.longitude,accuracy:c.accuracy,timestamp:pos.timestamp,altitude:c.altitude};
@@ -65,7 +66,7 @@ function watchGPS(){
   text('.gps-status span:last-child',c.accuracy>50?'精度を改善中':'取得済み');
   text('#gpsHelp',c.accuracy>50?'現在地は概算です。精度50m以内になると距離に加算します。':tracker.paused?'一時停止中です。再開を押すと距離計測を続けます。':r.reason||'GPSを取得しました。移動すると軌跡と距離を更新します。');
   drawLiveRoute();updateRun();
- },onError,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+ },onError);
  }catch(err){onError(err);}
 }
 function drawLiveRoute(){
@@ -97,8 +98,8 @@ function requestLocation(){
  });
 }
 async function beginRun(){if(tracker.active){navigate('run');return;}if(saveError)throw Error('前の記録を保存してから開始してください。');tracker.start();lastFix=permissionFix;$$('.coordinates').forEach(e=>e.remove());latest=null;navigate('run');drawLiveRoute();updateRun();watchGPS();void lock();}
-function updateRun(){const km=tracker.distance/1000*factor(),sec=tracker.seconds();text('#runDistance',km.toFixed(2));text('.run-distance .unit',unit());text('#runTime',time(sec));text('#runPace',pace(sec,km));text('#runSpeed',sec?(km/(sec/3600)).toFixed(1):'0.0');text('.run-stat:nth-child(2) span',`ペース /${unit()}`);text('.run-stat:nth-child(3) span',`平均速度 ${unit()}/h`);text('#runStatusChip',!tracker.active?'STARTで計測開始':tracker.paused?'一時停止中':'ランニング中…');text('#smallPauseButton span:last-child',tracker.paused?'再開':'一時停止');$('#mainRunUse').setAttribute('href',!tracker.active||tracker.paused?'#i-play':'#i-pause');$('#mainRunButton').setAttribute('aria-label',!tracker.active?'開始':tracker.paused?'再開':'一時停止');$('#smallPauseButton').disabled=!tracker.active;$('#finishRunButton').disabled=!tracker.active;}
-async function pauseRun(){if(!tracker.active)return startRun();if(tracker.paused){tracker.resume();if(watch!==null)navigator.geolocation.clearWatch(watch);clearInterval(timer);watchGPS();await lock();}else{tracker.pause();wake?.release();wake=null;}updateRun();}
+function updateRun(){const km=tracker.distance/1000*factor(),sec=tracker.seconds();text('#runDistance',km.toFixed(2));text('.run-distance .unit',unit());text('#runTime',time(sec));text('#runPace',pace(sec,km));text('#runLap',tracker.splits.length?time(tracker.splits.at(-1).seconds):'—');text('#runLapLabel',tracker.splits.length?`${tracker.splits.at(-1).km} km ラップ`:'直前の1 kmラップ');const laps=$('#liveLapRows');const content=tracker.splits.map(s=>`<div class="split-row"><span>${s.km} km</span><b>${time(s.seconds)}</b></div>`).join('')||'<p class="small muted">1 km到達後に表示します。</p>';if(laps.innerHTML!==content)laps.innerHTML=content;text('.run-stat:nth-child(2) span',`ペース /${unit()}`);text('#runStatusChip',!tracker.active?'STARTで計測開始':tracker.paused?'一時停止中':'ランニング中…');$('#mainRunUse').setAttribute('href',!tracker.active||tracker.paused?'#i-play':'#i-pause');$('#mainRunButton').setAttribute('aria-label',!tracker.active?'開始':tracker.paused?'再開':'一時停止');$('#screenLockButton').disabled=!tracker.active;$('#finishRunButton').disabled=!tracker.active;}
+async function pauseRun(){if(!tracker.active)return startRun();if(tracker.paused){tracker.resume();if(watch!==null)watch.stop();clearInterval(timer);watchGPS();await lock();}else{tracker.pause();stopWatch();}updateRun();}
 async function finishRun(){if(!tracker.active)return;close();latest=tracker.finish();stopWatch();saveError=true;renderResult();navigate('result');await persistResult();}
 async function persistResult(){if(saving||!latest)return;saving=true;try{const result=await data.saveRun(latest);latest=result;saveError=false;const existing=runs.findIndex(r=>r.id===result.id);if(existing<0)runs.unshift(result);else runs[existing]=result;renderSummary();toast('走行記録を保存しました。');}catch(e){saveError=true;toast('保存できませんでした。「再保存」を押してください。この画面は閉じないでください。');}finally{saving=false;renderResult();}}
 function renderResult(){if(!latest)return;const r=latest;text('#resultDistance',distance(r.distance_m));text('.result-distance > span:last-child',unit());text('#resultTime',time(r.duration_seconds));text('#resultPace',pace(r.duration_seconds,r.distance_m/1000*factor()));text('.result-stat:nth-child(2) span',`平均ペース /${unit()}`);text('#resultCalories',Math.round(r.distance_m/1000*60));text('.result-stat:nth-child(3) span','推定 kcal（体重60kg）');text('#resultDate',new Date(r.started_at).toLocaleString(locale()));$('.verified-card b').textContent=saving?'保存中…':saveError?'保存に失敗・再保存':r.verification_status==='verified'?`${distance(r.distance_m)} ${unit()} 認定済み`:`${distance(r.distance_m)} ${unit()}・未認定`;
@@ -136,10 +137,10 @@ async function sheet(kind){if(saveError&&kind==='history'){toast('未保存の�
  $('#profileForm').onsubmit=async e=>{e.preventDefault();if(processing||save.disabled)return;const next={...profile,nickname:$('#nickname').value.trim(),country:$('#country').value,avatar_data:avatar};if(!next.nickname)return;save.disabled=true;try{await data.saveProfile(next);profile=next;renderSummary();close();toast('プロフィールを保存しました。')}catch(err){text('#profileError',err.message)}finally{save.disabled=false}};
  }
  if(kind==='watch-setup'){
- if(data.isGuest()){modal('Apple Watch連携（Duffy）',note('自作アプリ「Duffy」から歩数・走行距離を同期できます。クラウドへログインすると設定できます。ランキングや認定距離、チャレンジの集計には使いません。'));return;}
+ if(data.isGuest()){modal('Apple Watch連携（Duffy）',note('Duffyと同じAppleヘルスケアの歩数・歩行＋走行距離を、iPhone連携アプリから同期します。Duffyに直接コードを入力する機能ではありません。クラウドへログインすると設定できます。ランキングや認定距離、チャレンジの集計には使いません。'));return;}
  const today=health?.connected&&health.today?`<p class="small">今日：${health.today.steps??0} 歩・${((health.today.distance_m??0)/1000).toFixed(1)} km</p>`:'';
- modal('Apple Watch連携（Duffy）',note('自作アプリ「Duffy」から歩数・走行距離を同期できます。ランキングや認定距離、チャレンジの集計には使いません。')+`<p class="small"><b>状態：${health?.connected?'連携中':'未連携'}</b></p>${today}<button class="primary-btn" id="watchIssueButton">${health?.connected?'連携コードを再発行する':'連携コードを発行する'}</button>${health?.connected?'<button class="danger-btn" id="watchRevokeButton" style="margin-top:8px">連携を解除</button>':''}<div class="code-block">POST ${esc(data.supabaseUrl)}/rest/v1/rpc/sync_health\napikey: ${esc(data.supabaseAnonKey)}\nContent-Type: application/json\n\n{"p_token":"発行したコード","p_day":"YYYY-MM-DD","p_steps":0,"p_distance_m":0}</div><p class="small muted">Duffy側からこの内容でPOSTするよう設定してください。コードは発行時に一度だけ表示されます。</p>`);
- $('#watchIssueButton').onclick=safe(async()=>{const token=await data.rotateHealthSyncToken();await refreshHealth();renderHealth();modal('連携コードを発行しました',note('このコードは今だけ表示されます。Duffyの設定に貼り付けてください。再表示はできません。')+`<div class="code-block">${esc(token)}</div><button class="secondary-btn" id="copyWatchToken">コピーする</button>`);$('#copyWatchToken').onclick=async()=>{try{await navigator.clipboard.writeText(token);toast('コピーしました。')}catch{modal('連携コード',`<input readonly aria-label="連携コード" value="${esc(token)}">`);}};});
+ modal('Apple Watch連携（Duffy）',note('Duffyと同じAppleヘルスケアの歩数・歩行＋走行距離を、iPhone連携アプリから同期します。Duffyに直接コードを入力する機能ではありません。ランキングや認定距離、チャレンジの集計には使いません。')+`<p class="small"><b>状態：${health?.connected?'連携中':'未連携'}</b></p>${today}<button class="primary-btn" id="watchIssueButton">${health?.connected?'連携コードを再発行する':'連携コードを発行する'}</button>${health?.connected?'<button class="danger-btn" id="watchRevokeButton" style="margin-top:8px">連携を解除</button>':''}<p class="small muted">iPhone連携アプリが必要です。歩行＋走行距離はランニングのみの距離ではありません。</p>`);
+ $('#watchIssueButton').onclick=safe(async()=>{const token=await data.rotateHealthSyncToken();await refreshHealth();renderHealth();modal('連携コードを発行しました',note('このコードは今だけ表示されます。Jasmy Health Syncの連携コード欄に貼り付けてください。再表示はできません。')+`<div class="code-block">${esc(token)}</div><button class="secondary-btn" id="copyWatchToken">コピーする</button>`);$('#copyWatchToken').onclick=async()=>{try{await navigator.clipboard.writeText(token);toast('コピーしました。')}catch{modal('連携コード',`<input readonly aria-label="連携コード" value="${esc(token)}">`);}};});
  $('#watchRevokeButton')?.addEventListener('click',safe(async()=>{await data.revokeHealthSyncToken();await refreshHealth();renderHealth();close();toast('連携を解除しました。')}));
  }
  if(kind==='history'){modal('走行履歴',runs.length?runs.map(r=>`<button class="history-item" data-run-id="${esc(r.id)}"><div><b>${distance(r.distance_m)} ${unit()}</b><span>${esc(new Date(r.started_at).toLocaleString(locale()))}</span></div><div>${time(r.duration_seconds)}<span>${r.verification_status==='verified'?'認定済み':'未認定'}</span></div></button>`).join(''):note('まだ走行記録がありません。ホームのSTART RUNから始めましょう。'));}
@@ -154,7 +155,7 @@ async function invite(){if(!team)return;const u=new URL(location.origin);u.searc
 async function action(a){if(a==='close-sheet')close();else if(a==='google')await signInGoogle();else if(a==='guest'){modal('この端末に保存して使う',note('走行記録と位置の軌跡を、このブラウザに保存します。ブラウザのデータ削除で記録も消えます。PDLやクラウドには送信されません。')+'<button class="primary-btn" id="enterGuest">端末保存で始める</button>');$('#enterGuest').onclick=safe(async()=>{await data.enterGuest();await loadApp();close();navigate('home')});}else if(a==='open-consent')sheet('consent');else if(a==='open-settings'){navigate('mypage');tab('#mypageTabs','mypage','settings');}else if(a==='open-full-map'){const points=screen==='result'?latest?.points:tracker.points;drawRoute($('.full-map-body'),points);$('#fullMap').classList.add('show');if(screen==='run')drawLiveRoute();}else if(a==='close-full-map')$('#fullMap').classList.remove('show');else if(a==='invite')await invite();}
 document.addEventListener('click',safe(async e=>{const target=e.target.closest('[data-action],[data-sheet],[data-go],[data-nav-go],[data-toast],[data-run-id]');if(!target||target.disabled)return;if(target.dataset.action)return action(target.dataset.action);if(target.dataset.sheet)return sheet(target.dataset.sheet);if(target.dataset.runId){latest=runs.find(r=>r.id===target.dataset.runId);close();renderResult();navigate('result');return;}if(target.dataset.go)return navigate(target.dataset.go);if(target.dataset.navGo)return target.dataset.navGo==='run'&&!tracker.active?startRun():navigate(target.dataset.navGo);if(target.dataset.toast)return toast(target.dataset.toast);}));
 $('#sheetOverlay').onclick=e=>{if(e.target===$('#sheetOverlay'))close()};
-$('#homeStartButton').onclick=safe(startRun);$('#resultStartAgain').onclick=safe(startRun);$('#mainRunButton').onclick=safe(pauseRun);$('#smallPauseButton').onclick=safe(pauseRun);$('#finishRunButton').onclick=safe(()=>sheet('finish-run'));$('#shareButton').onclick=()=>sheet('share');
+$('#homeStartButton').onclick=safe(startRun);$('#resultStartAgain').onclick=safe(startRun);$('#mainRunButton').onclick=safe(pauseRun);$('#screenLockButton').onclick=()=>{const overlay=$('#runLockOverlay');overlay.hidden=false;$('#screen-run .screen-scroll').inert=true;$('#bottomNav').inert=true;$('#unlockRun').focus();};$('#unlockRun').onclick=()=>{if($('#unlockRun').dataset.confirm!=='yes'){$('#unlockRun').dataset.confirm='yes';text('#unlockRun','もう一度押して解除');setTimeout(()=>{delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');},3000);return;}$('#runLockOverlay').hidden=true;$('#screen-run .screen-scroll').inert=false;$('#bottomNav').inert=false;delete $('#unlockRun').dataset.confirm;text('#unlockRun','画面ロックを解除');$('#screenLockButton').focus();};$('#finishRunButton').onclick=safe(()=>sheet('finish-run'));$('#shareButton').onclick=()=>sheet('share');
 $('#exportDataRow').onclick=()=>{download('jasmy-run-data.json',JSON.stringify({exported_at:new Date().toISOString(),storage:data.isGuest()?'device':'cloud',profile,runs},null,2));toast('全走行記録をエクスポートしました。')};
 $('#logoutButton').onclick=safe(async()=>{if(tracker.active||saveError)throw Error('計測を終了し、記録を保存してからログアウトしてください。');await data.logout();ready=false;runs=[];latest=null;team=null;navigate('login')});
 $('#unitToggle').onclick=safe(async()=>{const next={...profile,unit:profile.unit==='mile'?'km':'mile'};await data.saveProfile(next);profile=next;renderSummary();updateRun();if(latest)renderResult();toast('距離とペースの表示単位を変更しました。月間目標・ランキングはkm基準です。')});
@@ -174,7 +175,7 @@ $('#mypage-consent').insertAdjacentHTML('beforeend','<div class="consent-card"><
 $('#rankingConsent').onclick=safe(async()=>{const next={...profile,consents:{...profile.consents,ranking:!profile.consents.ranking}};await data.saveProfile(next);profile=next;$('#rankingConsent').classList.toggle('on',!!profile.consents.ranking);$('#rankingConsent').setAttribute('aria-checked',!!profile.consents.ranking);toast('ランキング公開設定を保存しました。')});
 safe(async()=>{navigate('login');if(await data.restore()){await loadApp();navigate('home');}if(ready){$('#rankingConsent').classList.toggle('on',!!profile.consents.ranking);$('#rankingConsent').setAttribute('aria-checked',!!profile.consents.ranking);}updateRun();})();
 
-$('#retryGPS').onclick=$('#locateGPS').onclick=safe(openLocation);
+$('#retryGPS').onclick=$('#locateGPS').onclick=safe(()=>{if(tracker.active){if(tracker.paused){toast('再開するとGPSを取得します。');return;}watchGPS();}else openLocation();});
 $('#requestLocation').onclick=requestLocation;
 $('#beginLocatedRun').onclick=safe(()=>{if(!permissionFix)return;if(Date.now()-permissionFix.timestamp>30000){requestLocation();return;}if(tracker.active){lastFix=permissionFix;navigate('run');drawLiveRoute();watchGPS();}else return beginRun();});
 $('#viewRunScreen').onclick=()=>{navigate('run');drawLiveRoute();};

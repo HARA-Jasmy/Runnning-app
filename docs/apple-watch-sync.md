@@ -1,50 +1,40 @@
-# Apple Watch（Duffy）連携の技術仕様
+# Apple Watch / Duffyとの健康データ連携
 
-Apple Watchのデータは、Apple純正のHealthKitへ記録されます。このアプリはHealthKitへ直接接続しません。
-ユーザー自身が用意する自作アプリ／ショートカット「Duffy」がHealthKitから歩数・走行距離を読み取り、
-このアプリのSupabaseプロジェクトへHTTP POSTすることでデータを届けます。
+Duffyは市販の歩数表示アプリです。自作アプリではありません。
+このリポジトリはDuffyのコードを変更せず、同じAppleヘルスケアのデータを
+独立したiPhoneアプリで読み取ります。Duffy固有のAPIへの直接接続ではありません。
 
-歩数・距離は**参考表示のみ**です。GPSによる実走行記録（`public.runs`）とは別テーブルに保存し、
-走行認定・ランキング・チーム距離・チャレンジのエントリー計算には一切使用しません。
+## 実装済み
 
-## 認証の仕組み
+- Web: Googleログイン後、マイページで連携コードの発行・失効、今日の値を表示。
+- Supabase: `sync_health(text,date,integer,integer)` による本人別の日次上書き。
+  トークンはハッシュで保存、他人の健康データの読み取りはRLSで禁止。
+- iPhone: `ios/JasmyHealthSync/JasmyHealthSyncApp.swift`。
+  HealthKitの歩数と歩行＋走行距離を当日分取得し、確認後にHTTPSで送信。
+  トークンはメモリだけに保持。データ未取得・権限不足をゼロとして送らない。
 
-1. ログイン済みユーザーがマイページ「Apple Watch連携（Duffy）」から連携コードを発行する（`rpc/rotate_health_sync_token`）。
-2. コードは192ビットの乱数で、平文はこのときだけ画面に表示される。サーバーにはSHA-256ハッシュのみ保存する。
-3. Duffyはこのコードを保持し、送信のたびに`p_token`として送る。
-4. サーバー側の`sync_health`関数がハッシュを突き合わせ、一致したユーザーの`health_daily_totals`を更新する。
+## iPhoneへの導入（未実施）
 
-コードはパスワードと同様の機密情報として扱うこと。漏えいした場合はマイページから再発行（無効化を兼ねる）できる。
+1. MacのXcodeでiOS App / SwiftUIプロジェクトを作成。iOS 17以上を対象にする。
+2. 作成されたAppファイルを上記Swiftファイルで置き換える。
+3. Signing & Capabilitiesで自身のApple DeveloperチームとBundle IDを設定し、HealthKitを追加。
+4. Infoに `NSHealthShareUsageDescription` を追加。
+   値: 「歩数と歩行・走行距離を読み取り、確認後にJasmy Runへ同期します。」
+5. 実機で起動し、Webで発行したコードを入力、読み取り許可、数値確認、送信。
+6. Webを再読み込みして表示を確認。Watch→iPhoneの同期遅延でDuffy表示と差が出ることがある。
 
-## エンドポイント
+この環境にはXcodeと実機がないためSwiftのビルド、署名、実機同期は未検証。
+自動バックグラウンド同期やApp Store公開は含まない。
+ブラウザ単独でHealthKitにはアクセスできないため、Web公開だけで自動連携は完了しない。
 
-```
-POST https://<project>.supabase.co/rest/v1/rpc/sync_health
-apikey: <公開のpublishable/anon key>
-Content-Type: application/json
+## 注意
 
-{
-  "p_token": "発行された連携コード",
-  "p_day": "2026-09-07",
-  "p_steps": 8421,
-  "p_distance_m": 6300
-}
-```
+距離は歩行＋走行であり、ランニングだけの距離ではない。GPSランと加算しない。
+ランキング・チャレンジ認定へは加算せず、参考値として別表示する。
+同じ日の再送は最新値で上書きする。ソース別サンプルを独自に足し合わせない。
+既存DBのsource値 `duffy` は互換性のため維持しているが、Duffy由来の証明ではない。
+既存APIはDBのUTC日付より未来の日付を拒否するため、日本の0〜9時の当日同期は失敗する。
+この制限の変更にはAPI側のタイムゾーン設計が必要。失敗時は成功と表示しない。
 
-- `p_day` はローカル日付（`YYYY-MM-DD`）。未来日、および91日以上前の日付は拒否される。
-- `p_steps` は0〜200,000、`p_distance_m` は0〜500,000（メートル）の範囲外は保存時に丸められる。
-- 同じ`p_token`・`p_day`の組み合わせで再送すると、その日の値を上書きする（累積ではなく最新値）。
-- 失敗時はPostgRESTの標準エラー形式でHTTP 400番台を返す。トークンが不正な場合も理由は返さない。
-
-## 適用が必要なマイグレーション
-
-`supabase/migrations/202609072_health_sync.sql` を、既存のSupabaseプロジェクトのSQL Editorで一度実行する。
-`pgcrypto`拡張を有効化し、`health_sync_tokens`・`health_daily_totals`テーブルと、
-`rotate_health_sync_token` / `revoke_health_sync_token` / `health_sync_status` / `sync_health`の4つの関数を作成する。
-
-## Duffy側の実装メモ
-
-- HealthKitの`HKQuantityTypeIdentifierStepCount`・`HKQuantityTypeIdentifierDistanceWalkingRunning`を
-  当日分だけ集計し、上記のリクエストを送る運用を想定している。
-- 送信頻度に制限はないが、同日中は最新の送信内容で上書きされるため、1日数回で十分。
-- iPhoneの「ショートカット」アプリで「HealthKit変数を取得」→「Webリクエストを取得」の組み合わせでも実装できる。
+参考: https://github.com/patrickrills/Duffy
+https://developer.apple.com/documentation/healthkit/hkstatisticsquery
