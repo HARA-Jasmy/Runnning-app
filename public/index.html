@@ -82,7 +82,7 @@
     <div class="screen-scroll">
       <div class="home-header">
         <div><div class="greeting">おはようございます</div><div class="greeting-name">Hiroshiさん ☀️</div></div>
-        <div class="header-actions"><button class="icon-button" data-toast="新しい通知はありません。" aria-label="通知"><svg class="icon"><use href="#i-bell"></use></svg></button><img class="avatar" src="/assets/a4f202287c31.png" alt="Hiroshi" /></div>
+        <div class="header-actions"><button class="icon-button" data-toast="新しい通知はありません。" aria-label="通知"><svg class="icon"><use href="#i-bell"></use></svg></button><img class="avatar" src="/assets/avatar-default.svg" alt="プロフィール画像" /></div>
       </div>
       <div class="content"><div id="storageStatus" class="notice"></div>
         <div class="card home-card">
@@ -121,25 +121,6 @@
     </div>
   </section>
 
-  <section class="screen" id="screen-location" data-nav="run">
-    <div class="screen-scroll location-content">
-      <button class="link" data-go="home">ホームへ</button>
-      <div class="location-symbol" aria-hidden="true"><svg class="icon"><use href="#i-target"></use></svg></div>
-      <h1>位置情報を許可する</h1>
-      <p>現在地を確認してから、ランニングを始めましょう。</p>
-      <ol class="location-steps"><li>下の「位置情報を許可する」をタップ</li><li>Safariの確認画面で「許可」を選択</li><li>現在地が表示されたら、ランニングを開始</li></ol>
-      <button class="primary-btn" id="requestLocation">位置情報を許可する</button>
-      <p id="locationStatus" class="notice" role="status" aria-live="polite">位置情報はまだ取得していません。</p>
-      <div id="locationPreview" class="map-card" hidden><svg class="map-svg" aria-label="現在地の確認"></svg></div>
-      <button id="beginLocatedRun" class="primary-btn" disabled>この位置でランニング開始</button>
-      <details id="locationSettings"><summary>許可画面が出ない・取得できない場合</summary><ol><li>iPhoneの「設定」→「プライバシーとセキュリティ」→「位置情報サービス」をオンにします。</li><li>「SafariのWebサイト」で位置情報の利用を許可し、「正確な位置情報」をオンにします。</li><li>Safariのページメニュー→「Webサイトの設定」→「位置情報」を「確認」または「許可」にします。</li><li>このページへ戻り、もう一度「位置情報を許可する」をタップします。</li></ol><p>iOSのバージョンによって表示名が異なる場合があります。設定アプリをこのページから自動で開くことはできません。</p><a href="https://support.apple.com/ja-jp/guide/personal-safety/ips9bf20ad2f/web" target="_blank" rel="noopener noreferrer">Appleの位置情報設定ガイド</a></details>
-      <button id="viewRunScreen" class="secondary-btn">位置情報なしで画面を見る</button>
-      <details id="routeExample"><summary>軌跡の表示例を見る</summary><p>表示例です。実際の現在地・走行記録ではありません。保存されません。</p><div id="routeDemo" class="map-card"><svg class="map-svg" aria-label="軌跡の表示例"></svg></div></details>
-      <p class="small muted">計測中はSafariを開いたままにしてください。画面ロック中の継続計測は保証されません。</p>
-    </div>
-  </section>
-
-  <!-- 3. Run -->
   <section class="screen" id="screen-run" data-nav="run">
     <div class="screen-scroll">
       <div class="run-topline"><div class="gps-status"><b>GPS</b><span class="gps-dots"><i></i><i></i><i></i></span><span>良好</span></div><div class="pill-row"><span class="accuracy">位置精度 ±3m</span><button class="icon-button" data-sheet="run-settings" aria-label="計測設定"><svg class="icon"><use href="#i-gear"></use></svg></button></div></div>
@@ -249,7 +230,7 @@
   <!-- 8. My page -->
   <section class="screen" id="screen-mypage" data-nav="mypage">
     <div class="screen-scroll">
-      <div class="profile-head"><button class="avatar-button" data-sheet="profile-edit" aria-label="プロフィール画像を変更"><img class="avatar" src="/assets/83f73b689e45.png" alt="プロフィール画像" /></button><div class="profile-copy"><b translate="no" id="profileName">Hiroshi</b><span>Japan</span></div><button class="profile-edit" data-sheet="profile-edit">プロフィールを編集</button><button class="icon-button" data-action="open-settings"><svg class="icon icon-sm"><use href="#i-gear"></use></svg></button></div>
+      <div class="profile-head"><button class="avatar-button" data-sheet="profile-edit" aria-label="プロフィール画像を変更"><img class="avatar" src="/assets/avatar-default.svg" alt="プロフィール画像" /></button><div class="profile-copy"><b translate="no" id="profileName">Hiroshi</b><span>Japan</span></div><button class="profile-edit" data-sheet="profile-edit">プロフィールを編集</button><button class="icon-button" data-action="open-settings"><svg class="icon icon-sm"><use href="#i-gear"></use></svg></button></div>
       <div class="mypage-content">
         <div class="segmented mypage-tabs" id="mypageTabs"><button class="active" data-mypage-tab="data">データ</button><button data-mypage-tab="consent">同意管理</button><button data-mypage-tab="settings">設定</button></div>
         <div class="mypage-panel active" id="mypage-data">

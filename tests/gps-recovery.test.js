@@ -45,3 +45,13 @@ for(const mode of ['unsupported','insecure','security-error','permission-denied'
   assert.equal(currentScreen,'run');assert.equal(tracker.active,true);assert.equal(tracker.paused,false);assert.equal(tracker.distance,0);assert.equal(ticks,1);assert.ok(texts['#gpsHelp']);
  });
 }
+
+test('opening run screen does not request GPS; central start requests synchronously',()=>{
+ const tracker=new RunTracker();let requests=0,currentScreen='home';
+ const sandbox={tracker,saveError:false,navigate:s=>currentScreen=s,beginRun:()=>{requests++;tracker.start();},updateRun(){}};
+ vm.createContext(sandbox);
+ vm.runInContext(app.slice(app.indexOf('function startRun()'),app.indexOf('async function beginRun()')),sandbox);
+ vm.runInContext(app.slice(app.indexOf('async function pauseRun()'),app.indexOf('async function finishRun()')),sandbox);
+ vm.runInContext('startRun()',sandbox);assert.equal(currentScreen,'run');assert.equal(requests,0);
+ vm.runInContext('pauseRun()',sandbox);assert.equal(requests,1);assert.equal(tracker.active,true);
+});
