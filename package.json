@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.10",
-    "esbuild": "0.25.9"
+    "esbuild": "0.25.9",
+    "jsdom": "26.1.0"
   }
 }
