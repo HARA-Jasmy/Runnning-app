@@ -7,7 +7,7 @@ function populate(select,withAll=false){if(!select||select.dataset.countriesExpa
 function improveProfileCountry(){const el=document.querySelector('.profile-copy > span');if(!el)return;const text=el.textContent.trim(),match=text.match(/(?:🌐\s*)?([a-z]{2})$/i);if(!match)return;const code=match[1].toLowerCase();if(!COUNTRY_CODES.includes(code))return;const expected=`${flag(code)} ${label(code)}`;if(text!==expected)el.textContent=expected;}
 function improveInsights(){const box=document.querySelector('#insightStats');if(!box)return;box.setAttribute('aria-label','今月のインサイト');for(const stat of box.querySelectorAll('.insight-stat')){const b=stat.querySelector('b'),s=stat.querySelector('span');if(b&&s){b.classList.add('insight-value');s.classList.add('insight-label');}}}
 function improveHealthCopy(){
- const row=document.querySelector('[data-sheet="watch-setup"]');const button=row?.querySelector('button');if(button)button.textContent='Apple Watch / Health連携（Duffy・Nike）';
+ const row=document.querySelector('[data-sheet="watch-setup"]');const button=row?.querySelector('button');const buttonLabel='Apple Watch / Health連携（Duffy・Nike）';if(button&&button.textContent!==buttonLabel)button.textContent=buttonLabel;
  const title=document.querySelector('#sheetTitle');if(!title)return;
  if(title.textContent.includes('Apple Watch連携')){
   title.textContent='Apple Watch / Health連携';const desc=document.querySelector('#sheetContent .sheet-description');
@@ -36,4 +36,10 @@ const style=document.createElement('style');style.textContent=`
 .run-source-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.run-source-option{appearance:none;border:1.5px solid #e6dfd7;border-radius:14px;background:#fff;padding:11px 9px;display:flex;align-items:center;gap:8px;text-align:left;color:inherit;min-width:0;cursor:pointer}.run-source-option.active{border-color:#f49a42;background:#fff8f0;box-shadow:0 0 0 1px rgba(244,154,66,.12)}.run-source-option:focus-visible{outline:3px solid rgba(244,154,66,.28);outline-offset:2px}.run-source-icon{width:32px;height:32px;border-radius:10px;background:#f6f3ef;display:grid;place-items:center;flex:0 0 auto}.run-source-option.active .run-source-icon{background:#fff0df;color:#d97719}.run-source-option b{display:block;font-size:12px;line-height:1.25}.run-source-option small{display:block;margin-top:3px;font-size:9px;color:#7c746c;line-height:1.2}.run-source-help{margin:10px 2px 0;font-size:10px;line-height:1.55;color:#6b7280}.home-start[data-run-source="watch"]{background:#333}
 @media(max-width:390px){#insightStats.insight-stats{grid-template-columns:1fr!important}#insightStats .insight-stat{display:grid!important;grid-template-columns:1fr 1.3fr!important;text-align:left!important;align-items:center!important}#insightStats .insight-label{text-align:right!important;font-size:11px!important}.run-source-title{align-items:flex-start;flex-direction:column;gap:2px}.run-source-title span{text-align:left}.run-source-options{grid-template-columns:1fr}.run-source-option{padding:10px 12px}.run-source-option b{font-size:13px}}
 `;document.head.append(style);
-const observer=new MutationObserver(()=>apply());observer.observe(document.body,{childList:true,subtree:true});apply();
+// Our DOM updates must not enqueue another enhancement pass indefinitely.
+// Reconnect afterwards so later app renders and newly opened sheets still work.
+function refreshEnhancements(){
+ observer.disconnect();
+ try{apply();}finally{observer.observe(document.body,{childList:true,subtree:true});}
+}
+const observer=new MutationObserver(refreshEnhancements);refreshEnhancements();
