@@ -1,17 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {GPSPoller} from '../src/gps-poller.js';
-test('requests every five seconds without overlap; stop drops late callbacks',()=>{
- let now=0,ok,bad,next,delay,calls=0,received=0;
- const poller=new GPSPoller({getCurrentPosition(a,b){calls++;ok=a;bad=b;}},{now:()=>now,setTimer:(fn,ms)=>{next=fn;delay=ms;return 1},clearTimer:()=>{next=null}});
- poller.start(()=>received++,()=>{});assert.equal(calls,1);assert.equal(next,null);
- now=1200;ok({coords:{}});assert.equal(delay,3800);assert.equal(received,1);
- now=5000;next();assert.equal(calls,2);
- poller.stop();ok({coords:{}});assert.equal(received,1);assert.equal(next,null);
- poller.start(()=>received++,()=>{});bad({code:1});assert.equal(next,null);
+
+test('uses watchPosition and throttles accepted fixes',()=>{
+ let ok,bad,cleared=null,watchCalls=0,received=0;
+ const geo={watchPosition(a,b,opts){watchCalls++;ok=a;bad=b;assert.equal(opts.enableHighAccuracy,true);return 42},clearWatch(id){cleared=id}};
+ const poller=new GPSPoller(geo,{interval:5000});
+ poller.start(()=>received++,()=>{});assert.equal(watchCalls,1);
+ ok({timestamp:1000,coords:{}});assert.equal(received,1);
+ ok({timestamp:3000,coords:{}});assert.equal(received,1);
+ ok({timestamp:6000,coords:{}});assert.equal(received,2);
+ poller.stop();assert.equal(cleared,42);
+ ok({timestamp:12000,coords:{}});assert.equal(received,2);
+ void bad;
 });
-test('timeouts retry and slower requests never overlap',()=>{
- let now=0,bad,next,delay;
- const poller=new GPSPoller({getCurrentPosition(a,b){bad=b;}},{now:()=>now,setTimer:(f,d)=>{next=f;delay=d},clearTimer:()=>{next=null}});
- poller.start(()=>{},()=>{});now=6000;bad({code:3});assert.equal(delay,0);assert.equal(typeof next,'function');poller.stop();
+
+test('forwards watcher errors and reports unavailable watcher',()=>{
+ let bad,errorCode=null;
+ const poller=new GPSPoller({watchPosition(a,b){bad=b;return 7},clearWatch(){} });
+ poller.start(()=>{},e=>{errorCode=e.code});bad({code:1});assert.equal(errorCode,1);poller.stop();
+ const unavailable=new GPSPoller({});let unavailableCode=null;unavailable.start(()=>{},e=>{unavailableCode=e.code});assert.equal(unavailableCode,2);
 });
