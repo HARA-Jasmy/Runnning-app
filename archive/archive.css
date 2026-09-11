@@ -1,0 +1,10 @@
+.archive-banner{position:absolute;z-index:110;inset:0 0 auto;height:82px;background:#fff7ed;border-bottom:1px solid #f2d9bb;padding:13px 16px 10px;color:#493320}
+.archive-banner>div{display:flex;align-items:center;gap:9px;font-size:13px}.archive-banner strong{font-size:15px}.archive-banner a{margin-left:auto;font-size:11px}
+.archive-badge{font-size:10px;border:1px solid #d8a573;border-radius:20px;padding:3px 7px;white-space:nowrap}.archive-banner p{font-size:10px;line-height:1.6;margin:6px 0 0}
+.screen .screen-scroll,.screen.login .screen-scroll{top:82px;bottom:70px}.archive-menu{margin:10px 12px;padding:9px 11px;background:#f8f9fa;border:1px solid #e8ebef;border-radius:10px;font-size:11px}
+.archive-menu summary{cursor:pointer;font-weight:700}.archive-menu nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:9px}.archive-menu nav a{padding:8px;border-radius:6px;background:#fff;text-decoration:none}.archive-menu a[aria-current]{background:#fff0df;color:#8c4610}
+a.primary-btn,a.secondary-btn,a.icon-button,a.nav-item,a.challenge-detail,a.link{font:inherit;text-decoration:none}a.nav-item{font-size:10px}a.icon-button{display:inline-flex;align-items:center;justify-content:center}a.link{font-size:10px;color:var(--orange-deep)}
+button:disabled,input:disabled,select:disabled{cursor:default}button:disabled{opacity:.65}.bottom-nav{display:flex!important}.screen.login .login-actions{margin-top:16px}.screen.login .login-wrap{padding-top:10px}
+.mypage-panel+.mypage-panel{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}.archive-banner a:focus-visible,.archive-menu a:focus-visible,a.nav-item:focus-visible{outline:3px solid #d77920;outline-offset:3px}
+@media(min-width:700px){.prototype-shell{height:min(844px,calc(100dvh - 48px))}}
+@media(max-width:360px){.archive-banner{padding-inline:10px}.archive-banner strong{font-size:13px}.archive-banner p{font-size:9px}}

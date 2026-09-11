@@ -1,3 +1,5 @@
+> **Service pause, 2026-09-11:** Production publishes only the eight static pages in `archive/`, the original stylesheet, and local images. Application source below is retained for future restoration and is not included in the published output. Login, GPS, health sync, and database connections are disabled. Last active source: `archive/before-pause-20260911` (`420b6ff544b0cdcc9d1ffc9e11971b3904b6652e`).
+
 # Jasmy Run
 
 承認済み `jasmy_running_mockup_v2.html` を引き継いだ、Jasmyランニングアプリの初期実装です。元のロゴ・画像・白背景と淡いオレンジ・8画面の構成を保持しています。
